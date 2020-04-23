@@ -1,9 +1,11 @@
 name: duck
 channels:
   - omnia
+  - bioconda
   - conda-forge
   - defaults
 dependencies:
+  - openduck
   - python=3.6
   - yank
   - rdkit==2018.09.01
@@ -11,5 +13,3 @@ dependencies:
   - openforcefield=0.4.0
   - boto3
   - cudatoolkit=9.2
-  - pip:
-    - nose
