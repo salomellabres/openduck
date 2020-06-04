@@ -76,7 +76,7 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
         if i == 0:
             md_start = "equil.chk"
         else:
-            md_start = "md_" + str(i - 1) + ".chk"
+            md_start = str(Path(save_dir, "md_" + str(i - 1) + ".chk"))
         log_file = str(Path(save_dir, "md_" + str(i) + ".csv"))
         perform_md(
             md_start,
