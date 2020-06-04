@@ -1,0 +1,185 @@
+import argparse
+import pickle
+import shutil
+import sys
+from pathlib import Path
+from os import chdir
+import yaml
+
+from duck.steps.chunk import (
+    chunk_with_amber,
+    do_tleap,
+    remove_prot_buffers_alt_locs,
+    find_disulfides,
+)
+
+from duck.steps.parametrize import prepare_system
+from duck.utils.cal_ints import find_interaction
+from duck.steps.equlibrate import do_equlibrate
+from duck.utils.check_system import check_if_equlibrated
+from duck.steps.normal_md import perform_md
+from duck.steps.steered_md import run_steered_md
+
+
+def duck_chunk(protein, ligand, interaction, cutoff, ignore_buffers=False):
+    """
+    Same as Simon's duck_chunk.py script, but reads in yaml rather than commandline
+    :return:
+    """
+    # A couple of file name
+    orig_file = prot_file = protein
+    chunk_protein = "protein_out.pdb"
+    chunk_protein_prot = "protein_out_prot.pdb"
+    # Do the removal of buffer mols and alt locs
+    if not ignore_buffers:
+        prot_file = remove_prot_buffers_alt_locs(prot_file)
+    # Do the chunking and the protonation
+    chunk_with_amber(
+        ligand, prot_file, interaction, chunk_protein, cutoff, orig_file
+    )
+    # Protonate
+    disulfides = find_disulfides(chunk_protein)
+    do_tleap(chunk_protein, chunk_protein_prot, disulfides)
+
+    return chunk_protein_prot
+
+
+def prepare_sys(protein, ligand, interaction, chunk, gpu_id, force_constant_eq=1.0):
+    """
+    Same as Simon's duck_prepare_sys.py script
+    :return:
+    """
+    prepare_system(ligand, chunk)
+    # Now find the interaction and save to a file
+    results = find_interaction(interaction, protein)
+    print(results)  # what happens to these?
+    with open('complex_system.pickle', 'rb') as f:
+        p = pickle.load(f) + results
+    with open('complex_system.pickle', 'wb') as f:
+        pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    #     pickle.dump(l, 'complex_system.pickle')
+    # Now do the equlibration
+    do_equlibrate(force_constant_equilibrate=force_constant_eq, gpu_id=gpu_id)
+    if not check_if_equlibrated("density.csv", 1):
+        raise EquilibrationError("System is not equilibrated.")
+
+
+def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist, init_velocity, save_dir):
+    shutil.copyfile(input_checkpoint, "equil.chk")
+    shutil.copyfile(pickle, "complex_system.pickle")
+
+    # Now do the MD
+    # remember start_dist
+    for i in range(num_runs):
+        if i == 0:
+            md_start = "equil.chk"
+        else:
+            md_start = "md_" + str(i - 1) + ".chk"
+        log_file = "md_" + str(i) + ".csv"
+        perform_md(
+            md_start,
+            "md_" + str(i) + ".chk",
+            log_file,
+            "md_" + str(i) + ".pdb",
+            md_len=md_len,
+            gpu_id=gpu_id,
+        )
+        # Open the file and check that the potential is stable and negative
+        if not check_if_equlibrated(log_file, 3):
+            print("SYSTEM NOT EQUILIBRATED")
+            sys.exit()
+        # Now find the interaction and save to a file
+        if not Path(save_dir).exists(): save_dir.mkdir()
+
+        run_steered_md(
+            300,
+            Path(save_dir, "md_" + str(i) + ".chk"),
+            Path(save_dir, "smd_" + str(i) + "_300.csv"),
+            Path(save_dir, "smd_" + str(i) + "_300.dat"),
+            Path(save_dir, "smd_" + str(i) + "_300.pdb"),
+            Path(save_dir, "smd_" + str(i) + "_300.dcd"),
+            start_dist,
+            init_velocity=init_velocity,
+            gpu_id=gpu_id,
+        )
+        run_steered_md(
+            325,
+            Path(save_dir, "md_" + str(i) + ".chk"),
+            Path(save_dir, "smd_" + str(i) + "_325.csv"),
+            Path(save_dir, "smd_" + str(i) + "_325.dat"),
+            Path(save_dir, "smd_" + str(i) + "_325.pdb"),
+            Path(save_dir, "smd_" + str(i) + "_325.dcd"),
+            start_dist,
+            init_velocity=init_velocity,
+            gpu_id=gpu_id,
+        )
+
+def run_single_direc(direc):
+    """
+
+    :param direc: Path to directory holding the data and yaml file
+    :return:
+    """
+    chdir(direc)
+    yaml_file = Path('run.yaml')
+    out_data = yaml.load(yaml_file.read_text(), Loader=yaml.FullLoader)
+
+    # Set all the params
+    protein_file = out_data["apo_pdb_file"]
+    ligand_file = out_data["mol_file"]
+    protein_code = out_data["prot_code"]
+    protein_interaction = out_data["prot_int"]
+    cutoff = float(out_data["cutoff"])
+    md_len = float(out_data["md_len"])
+    start_distance = float(out_data["distance"])
+    init_velocity = float(out_data["init_velocity"])
+    num_smd_cycles = int(out_data["num_smd_cycles"])
+    gpu_id = int(out_data["gpu_id"])
+
+    save_dir = Path(direc, 'duck_runs')
+    if not save_dir.exists(): save_dir.mkdir()
+
+    chunk_prot_fname = duck_chunk(protein=protein_file,
+                                 ligand=ligand_file,
+                                 interaction=protein_interaction,
+                                 cutoff=cutoff)
+
+
+    prepare_sys(protein=protein_file,
+                ligand=ligand_file,
+                interaction=protein_interaction,
+                chunk=str(Path(direc,chunk_prot_fname)),
+                gpu_id=gpu_id)
+
+    pickle_path = Path(direc, 'complex_system.pickle')
+    pickle_path.rename('cs.pickle')
+
+    equil_path = Path(direc, 'equil.chk')
+    equil_path.rename('eql.chk')
+
+    duck_smd_runs(input_checkpoint=equil_path,
+                  pickle=pickle_path,
+                  num_runs=num_smd_cycles,
+                  md_len=md_len,
+                  gpu_id=gpu_id,
+                  start_dist=start_distance,
+                  init_velocity=init_velocity,
+                  save_dir=save_dir)
+
+def main():
+    """
+    Runs from an input file containing the paths to directories with DUck input
+    :return:
+    """
+    parser = argparse.ArgumentParser(description='Perform dynamic undocking in the duck_pond')
+    parser.add_argument('-i', '--input_file', help='input file containing the paths to directories with DUck input')
+
+    args = parser.parse_args()
+    dir_list = Path(args.input_file).read_text().strip().split('\n')
+
+    for d in dir_list:
+        run_single_direc(Path(d))
+
+if __name__=='__main__':
+    main()
