@@ -71,17 +71,18 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
 
     # Now do the MD
     # remember start_dist
+    if not Path(save_dir).exists(): save_dir.mkdir()
     for i in range(num_runs):
         if i == 0:
             md_start = "equil.chk"
         else:
             md_start = "md_" + str(i - 1) + ".chk"
-        log_file = "md_" + str(i) + ".csv"
+        log_file = str(Path(save_dir, "md_" + str(i) + ".csv"))
         perform_md(
             md_start,
-            "md_" + str(i) + ".chk",
+            str(Path(save_dir, "md_" + str(i) + ".chk")),
             log_file,
-            "md_" + str(i) + ".pdb",
+            str(Path(save_dir, "md_" + str(i) + ".pdb")),
             md_len=md_len,
             gpu_id=gpu_id,
         )
@@ -90,26 +91,26 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
             print("SYSTEM NOT EQUILIBRATED")
             sys.exit()
         # Now find the interaction and save to a file
-        if not Path(save_dir).exists(): save_dir.mkdir()
+
 
         run_steered_md(
             300,
-            Path(save_dir, "md_" + str(i) + ".chk"),
-            Path(save_dir, "smd_" + str(i) + "_300.csv"),
-            Path(save_dir, "smd_" + str(i) + "_300.dat"),
-            Path(save_dir, "smd_" + str(i) + "_300.pdb"),
-            Path(save_dir, "smd_" + str(i) + "_300.dcd"),
+            str(Path(save_dir, "md_" + str(i) + ".chk")),
+            str(Path(save_dir, "smd_" + str(i) + "_300.csv")),
+            str(Path(save_dir, "smd_" + str(i) + "_300.dat")),
+            str(Path(save_dir, "smd_" + str(i) + "_300.pdb")),
+            str(Path(save_dir, "smd_" + str(i) + "_300.dcd")),
             start_dist,
             init_velocity=init_velocity,
             gpu_id=gpu_id,
         )
         run_steered_md(
             325,
-            Path(save_dir, "md_" + str(i) + ".chk"),
-            Path(save_dir, "smd_" + str(i) + "_325.csv"),
-            Path(save_dir, "smd_" + str(i) + "_325.dat"),
-            Path(save_dir, "smd_" + str(i) + "_325.pdb"),
-            Path(save_dir, "smd_" + str(i) + "_325.dcd"),
+            str(Path(save_dir, "md_" + str(i) + ".chk")),
+            str(Path(save_dir, "smd_" + str(i) + "_325.csv")),
+            str(Path(save_dir, "smd_" + str(i) + "_325.dat")),
+            str(Path(save_dir, "smd_" + str(i) + "_325.pdb")),
+            str(Path(save_dir, "smd_" + str(i) + "_325.dcd")),
             start_dist,
             init_velocity=init_velocity,
             gpu_id=gpu_id,
@@ -152,14 +153,17 @@ def run_single_direc(direc):
                 chunk=str(Path(direc,chunk_prot_fname)),
                 gpu_id=gpu_id)
 
-    pickle_path = Path(direc, 'complex_system.pickle')
-    pickle_path.rename('cs.pickle')
+    pickle_path = Path('complex_system.pickle')
+    new_pickle_path = Path('cs.pickle')
+    pickle_path.rename(new_pickle_path)
 
-    equil_path = Path(direc, 'equil.chk')
-    equil_path.rename('eql.chk')
+    equil_path = Path('equil.chk')
+    new_equil_path = Path('eql.chk')
+    equil_path.rename(new_equil_path)
+    print('checkpoint_path', equil_path)
 
-    duck_smd_runs(input_checkpoint=equil_path,
-                  pickle=pickle_path,
+    duck_smd_runs(input_checkpoint=new_equil_path,
+                  pickle=new_pickle_path,
                   num_runs=num_smd_cycles,
                   md_len=md_len,
                   gpu_id=gpu_id,
