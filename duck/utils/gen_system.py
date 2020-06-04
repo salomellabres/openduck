@@ -19,7 +19,7 @@ def generateSMIRNOFFStructureRDK(ligand_file, ff='test_forcefields/smirnoff99Fro
 	force_field = ForceField(ff)
 	
 	ligand_topology = Topology.from_molecules(ligand_off_molecule)
-	ligand_system = force_field.create_openmm_system(ligand_topology, charge_from_molecules=[ligand_off_molecule])
+	ligand_system = force_field.create_openmm_system(ligand_topology, charge_from_molecules=[ligand_off_molecule], allow_nonintegral_charges=True)
 	ligand_topology = ligand_topology.to_openmm()  # needed for call to parmed
 	
 	# Read in the coordinates of the ligand from the PDB file
