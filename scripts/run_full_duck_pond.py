@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from os import chdir
 import yaml
+import requests
 
 from duck.steps.chunk import (
     chunk_with_amber,
@@ -182,9 +183,11 @@ def main():
     args = parser.parse_args()
     dir_list = Path(args.input_file).read_text().strip().split('\n')
 
-    for d in dir_list:
+    requests.post('https://notify.run/jJveF2DXBuQgHNJr', data=f"Starting run")
+    for i, d in enumerate(dir_list):
         try:
             run_single_direc(Path(d))
+            requests.post('https://notify.run/jJveF2DXBuQgHNJr', data=f"Ran {i} out of {d} runs, name: {str(d.name)}")
         except Exception as e:
             with open(Path(d, 'error.log'), 'w') as f:
                 f.write(str(e))
