@@ -183,7 +183,11 @@ def main():
     dir_list = Path(args.input_file).read_text().strip().split('\n')
 
     for d in dir_list:
-        run_single_direc(Path(d))
+        try:
+            run_single_direc(Path(d))
+        except Exception as e:
+            with open(Path(d, 'error.log'), 'w') as f:
+                f.write(str(e))
 
 if __name__=='__main__':
     main()
