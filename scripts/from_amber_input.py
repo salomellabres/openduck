@@ -57,10 +57,10 @@ def find_interaction_amber_input(combined_pmd, chunk_file, res_atom):
     if chunk_file.split('.')[-1]== 'mol2':
         rename_mol2_residues(chunk)
 
-    chain = '' # chain information lost in the chunking
-    res_name = res_atom.split("_")[1]
-    res_number = int(res_atom.split("_")[2])
-    atom_name = res_atom.split("_")[3]
+    chain = '' # chain information gets lost in the chunk
+    res_name = res_atom.split("_")[0][:3]
+    res_number = int(res_atom.split("_")[0][3:6])
+    atom_name = res_atom.split("_")[-1]
 
     for atom in chunk.atoms:
         # chain information gets lost in the chunking process, which is expected. Maybe need a check to make sure
