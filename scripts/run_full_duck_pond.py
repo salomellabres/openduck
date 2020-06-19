@@ -187,7 +187,7 @@ def main():
     for i, d in enumerate(dir_list):
         try:
             run_single_direc(Path(d))
-            requests.post('https://notify.run/jJveF2DXBuQgHNJr', data=f"Ran {i} out of {d} runs, name: {str(d.name)}")
+            requests.post('https://notify.run/jJveF2DXBuQgHNJr', data=f"Ran {i} out of {len(d)} runs, name: {str(d.name)}")
         except Exception as e:
             with open(Path(d, 'error.log'), 'w') as f:
                 f.write(str(e))
