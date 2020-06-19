@@ -28,7 +28,7 @@ def find_atom(res_atom=None, prot_file=None, combined_pmd=None):
     res_number = int(res_atom.split("_")[2])
     atom_name = res_atom.split("_")[3]
     # Read the original PDB File and find the atom coords
-    protein = parmed.load_file(prot_file)
+    protein = parmed.load_file(prot_file, structure=True)
     for atom in protein.atoms:
         if check_same(atom, chain, res_name, res_number, atom_name):
             prot_atom = atom

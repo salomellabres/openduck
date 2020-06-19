@@ -5,9 +5,10 @@ import pickle
 from duck.utils import duck_stuff
 from duck.utils import cal_ints
 
-def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0):
+def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None):
     # Find the interations
-    keyInteraction = cal_ints.find_interaction()
+    if not keyInteraction:
+        keyInteraction = cal_ints.find_interaction()
     # Platform definition
     platformProperties = {}
     if gpu_id != None:
