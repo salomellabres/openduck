@@ -34,6 +34,7 @@ def run_steered_md(
     if gpu_id != None:
         platform = mm.Platform_getPlatformByName("CUDA")
         platformProperties["CudaPrecision"] = "double"
+        platformProperties["DeviceIndex"]=str(gpu_id)
     else:
         platform = mm.Platform_getPlatformByName("CPU")
     platformProperties["DeterministicForces"] = 'true'
