@@ -210,8 +210,10 @@ def run_single_direc(direc):
     num_smd_cycles = int(out_data["num_smd_cycles"])
     gpu_id = int(out_data["gpu_id"])
 
-    save_dir = Path(direc, 'duck_runs')
-    if not save_dir.exists(): save_dir.mkdir()
+    save_dir = Path(Path.cwd(), 'duck_runs')
+    if not save_dir.exists():
+        save_dir.mkdir()
+
 
     equilibrate_from_amber_prep(interaction=protein_interaction,
                                 prmtop_file=prmtop,
