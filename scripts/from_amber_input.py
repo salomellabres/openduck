@@ -7,6 +7,7 @@ from os import chdir
 import yaml
 import requests
 import json
+import socket
 
 # from duck.steps.parametrize import prepare_system
 from duck.steps.equlibrate import do_equlibrate
@@ -209,6 +210,10 @@ def run_single_direc(direc):
     init_velocity = float(out_data["init_velocity"])
     num_smd_cycles = int(out_data["num_smd_cycles"])
     gpu_id = int(out_data["gpu_id"])
+
+    # Fix the gpu_id
+    if socket.gethostname() != 'gandalf':
+        gpu_id = 0
 
     save_dir = Path(Path.cwd(), 'duck_runs')
     if not save_dir.exists():
