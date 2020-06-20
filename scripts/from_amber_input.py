@@ -271,5 +271,5 @@ if __name__=='__main__':
     dir_list = Path(input_file).read_text().strip().split('\n')
 
     with Pool(2) as p:
-        p.map(run_single_direc, dir_list)
+        p.map(run_single_direc, dir_list, chunksize=1)
 
