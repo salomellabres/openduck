@@ -110,7 +110,7 @@ def run_steered_md(
             speed=True,
         )
     )
-    simulation.reporters.append(app.DCDReporter(traj_out_file, 100000))
+    simulation.reporters.append(app.DCDReporter(traj_out_file, 2000))
     f = open(dat_out_file, "w")
     # Production in N steps with the update every 200 steps (2 pm)
     for i in range(steps):

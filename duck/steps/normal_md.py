@@ -87,7 +87,7 @@ def perform_md(
             speed=True,
         )
     )
-    simulation.reporters.append(app.DCDReporter("md.dcd", 100000))
+    simulation.reporters.append(app.DCDReporter("md.dcd", 2000))
     # Production
     simulation.step(sim_steps)
     # Save state in checkpoint file and save coordinates in PDB file
