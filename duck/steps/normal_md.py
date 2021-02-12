@@ -12,6 +12,7 @@ def perform_md(
     checkpoint_out_file,
     csv_out_file,
     pdb_out_file,
+    dcd_out_file,
     force_constant_ligand=1.0,
     md_len=1.0,
     force_constant_chunk=0.1,
@@ -87,7 +88,7 @@ def perform_md(
             speed=True,
         )
     )
-    simulation.reporters.append(app.DCDReporter("md.dcd", 100000))
+    simulation.reporters.append(app.DCDReporter(dcd_out_file, 100000))
     # Production
     simulation.step(sim_steps)
     # Save state in checkpoint file and save coordinates in PDB file

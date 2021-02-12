@@ -80,10 +80,11 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
             md_start = str(Path(save_dir, "md_" + str(i - 1) + ".chk"))
         log_file = str(Path(save_dir, "md_" + str(i) + ".csv"))
         perform_md(
-            md_start,
-            str(Path(save_dir, "md_" + str(i) + ".chk")),
-            log_file,
-            str(Path(save_dir, "md_" + str(i) + ".pdb")),
+            checkpoint_in_file=md_start,
+            checkpoint_out_file=str(Path(save_dir, "md_" + str(i) + ".chk")),
+            csv_out_file=log_file,
+            pdb_out_file=str(Path(save_dir, "md_" + str(i) + ".pdb")),
+            dcd_out_file=str(Path(save_dir, "md_" + str(i) + ".dcd")),
             md_len=md_len,
             gpu_id=gpu_id,
         )
