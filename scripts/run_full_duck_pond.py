@@ -186,12 +186,12 @@ def main():
 
     requests.post('https://notify.run/jJveF2DXBuQgHNJr', data=f"Starting run")
     for i, d in enumerate(dir_list):
-        try:
-            run_single_direc(Path(d))
-            requests.post('https://notify.run/jJveF2DXBuQgHNJr', data=f"Ran {i} out of {len(d)} runs, name: {str(d.name)}")
-        except Exception as e:
-            with open(Path(d, 'error.log'), 'w') as f:
-                f.write(str(e))
+        #try:
+        run_single_direc(Path(d))
+        #requests.post('https://notify.run/jJveF2DXBuQgHNJr', data=f"Ran {i} out of {len(d)} runs, name: {str(d.name)}")
+        #except Exception as e:
+            #with open(Path(d, 'error.log'), 'w') as f:
+                #f.write(str(e))
 
 if __name__=='__main__':
     main()
