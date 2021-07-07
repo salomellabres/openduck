@@ -81,6 +81,8 @@ def find_neighbour_residues(residues):
                             continue
                         if bond_2.atom1 == atom:
                             conn_two = bond_2.atom2
+                        elif bond_2.atom1 == atom_two:
+                            conn_two = bond_2.atom2
                         else:
                             conn_two = bond_2.atom1
                         double_res_set.add(conn_two.residue)
@@ -160,6 +162,7 @@ def remove_prot_buffers_alt_locs(prot_file):
 def find_disulfides(input_file, threshold=6.2):
     structure = parmed.load_file(input_file)
     sulfurs = [x for x in structure.atoms if x.residue.name == "CYS" and x.name == "SG"]
+    #sulfurs = [x for x in structure.atoms if (x.residue.name == "CYS" or x.residue.name == "CYX") and x.name == "SG"]
     disulfides = []
     for atom_one in sulfurs:
         for atom_two in sulfurs:
