@@ -3,6 +3,7 @@ import numpy as np
 from scipy.stats import ttest_ind, ks_2samp
 import pandas as pd
 import matplotlib.pyplot as plt
+import MDAnalysis as mda
 
 
 def get_Wqb_value(file_duck_dat):
@@ -113,4 +114,43 @@ def wqb_comparison(dat_files_list_300, dat_files_list_325, protein_name, plot_da
         fig.suptitle(protein_name)
         plt.show()
     return [[ev_a, ev_b], [un_a, un_b], [ks_s, ks_p]]
+
+### Functions used for QC of DUck MD and SMD runs - maybe move to other script as these pile up
+
+def get_trajectory_rmsds(loaded_universe, selection):
+    """
+    Given a trajectory, plots rmsd of calphas/ligand/waters along the trajectory
+    :param loaded_universe:
+    :param complex_pdb:
+    :param selection: protein, calphas, resname WAT (waters), resname {ligand_name}
+    :return:
+    """
+    # 1) need a step to center and make whole: this trajectory
+    #    contains the protein being split across periodic boundaries
+
+    protein = loaded_universe.select_atoms("protein")
+    not_protein = loaded_universe.select_atoms("not_protein")
+
+    transforms = [mda.transformations.unwrap(protein),
+                  mda.transformations.center_in_box(protein, wrap=True),
+                  mda.transformations.wrap(not_protein)]
+
+    loaded_universe.trajectory.add_transformations(*transforms)
+
+    # 2) fit to the initial frame to get a better average structure
+    #    (the trajectory is changed in memory)
+    prealigner = mda.analysis.align.AlignTraj(loaded_universe, select="protein and name CA", in_memory=True).run()
+
+    # Now, get the rmsd between the starting frame and the subsequent ones at each point in the trajectory
+    atom_selection = loaded_universe.select_atoms(selection)
+    over_time = [(mda.analysis.rms.rmsd(loaded_universe.trajectory.timeseries(asel=atom_selection)[:, 0, :],
+                                        loaded_universe.trajectory.timeseries(asel=atom_selection)[:, i, :])) for i in
+                 range(loaded_universe.trajectory.n_frames)]
+    return over_time
+
+
+def make_vmd_script(pdb_file, traj_file, ligand_name, residue_name):
+    from duck.utils.vmd_template import vmd_template
+
+    pass
 
