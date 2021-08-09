@@ -9,31 +9,26 @@
 
 Make a fresh Conda environment
 ```
-git clone https://github.com/galaxycomputationalchemistry/duck
+git clone https://github.com/mihaelasmilova/duck
 cd duck
 conda env create -f environment.yaml 
+conda activate openduck_latest
+python setup.py -install
 ```
-
-Or quickly: `conda create -n openduck -c omnia -c bioconda -c conda-forge -c defaults python=3.7 yank=0.25.2 pdbfixer=1.6 openforcefield=0.6.0 parmed=3.2.0 cudatoolkit=10.1.243 openmm=7.4.1=py37_cuda101_rc_1 openduck=0.1.2`
-
-## Docker
-
-Pull down the latest image
-```
-docker pull abradle/duck
 ```
 
 #### Running
 
 Activate conda and run like this:
 ```
-source activate duck
-frag_duck run.yaml
+source activate openduck_latest
+python ./scripts/run_full_duck_pond.py -i inputs_file.txt
+where inputs_file.txt contains the paths to directories with openduck input (1 directory = 1 interaction).
+The input directories need to contain:
+- prepared apo protein file
+- protonated ligand file
+- run.yaml file with DUck parameters
 ```
-
-Or with Docker run like this:
-```
-docker run -it -v $PWD:/data abradle/duck /bin/bash -c "frag_duck /data/run.yaml"
 ```
 
 where run.yaml is a file like the following:
@@ -47,7 +42,7 @@ md_len: 0.5
 distance: 2.5
 init_velocity: 0.00001
 num_smd_cycles: 1
-gpu_id: '3'
+gpu_id: 0
 apo_pdb_file: '1n2v_apo.pdb'
 mol_file: ligand.mol
 ```
