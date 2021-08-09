@@ -15,7 +15,6 @@ conda env create -f environment.yaml
 conda activate openduck_latest
 python setup.py -install
 ```
-```
 
 #### Running
 
@@ -23,13 +22,14 @@ Activate conda and run like this:
 ```
 source activate openduck_latest
 python ./scripts/run_full_duck_pond.py -i inputs_file.txt
+```
+
 where inputs_file.txt contains the paths to directories with openduck input (1 directory = 1 interaction).
 The input directories need to contain:
 - prepared apo protein file
 - protonated ligand file
 - run.yaml file with DUck parameters
-```
-```
+
 
 where run.yaml is a file like the following:
 
