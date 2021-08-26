@@ -6,21 +6,44 @@ from pathlib import Path
 from os import chdir
 import yaml
 import requests
+import operator
+import math
 
+from parmed.geometry import distance2
 from duck.steps.chunk import (
     chunk_with_amber,
     do_tleap,
     remove_prot_buffers_alt_locs,
     find_disulfides,
 )
-
 from duck.steps.parametrize import prepare_system
-from duck.utils.cal_ints import find_interaction
+from duck.utils.cal_ints import find_interaction, find_atom, is_lig
 from duck.steps.equlibrate import do_equlibrate
 from duck.utils.check_system import check_if_equlibrated
 from duck.steps.normal_md import perform_md
 from duck.steps.steered_md import run_steered_md
 
+def find_ligand_interaction(res_atom=None, protein_file=None, ligand_coords, ligand_atomnum):
+    output_file = "indice.text"
+    if not res_atom or prot_file:
+        if os.path.isfile(output_file):
+            return json.load(open(output_file))
+    # Read files
+    print("loading pickle")
+    pickle_in = open("complex_system.pickle", "rb")
+    combined_pmd = pickle.load(pickle_in)[0]
+    pickle_in.close()
+    distance_atom_1, prot_atom = find_atom(res_atom, prot_file, combined_pmd)
+    distance_atom_2 = [
+        (x.idx, distance2(x, ligand_coords)) for x in combined_pmd.atoms if (is_lig(x) and x.atomic_number == ligand_atomnum)
+    ]
+    distance_atom_2.sort(key=operator.itemgetter(1))
+    # These are the interactions to find
+    index_one = distance_atom_1[0][0]
+    # The ligand one
+    index_two = distance_atom_2[0][0]
+    out_res = [index_one, index_two, math.sqrt(distance_atom_2[0][1])]
+    return index_one, index_two, out_res, distance_atom_2[0][1]
 
 def duck_chunk(protein, ligand, interaction, cutoff, ignore_buffers=False):
     """
@@ -45,15 +68,20 @@ def duck_chunk(protein, ligand, interaction, cutoff, ignore_buffers=False):
     return chunk_protein_prot
 
 
-def prepare_sys(protein, ligand, interaction, chunk, gpu_id, force_constant_eq=1.0):
+def prepare_sys(protein, ligand, interaction, chunk, gpu_id, force_constant_eq=1.0, lig_coords=None, lig_atomnum=None):
     """
     Same as Simon's duck_prepare_sys.py script
     :return:
     """
     prepare_system(ligand, chunk)
     # Now find the interaction and save to a file
-    results = find_interaction(interaction, protein)
+    
+    if (lig_coords is not None) and (lig_atomnum is not None):
+        results = find_ligand_interaction()
+    else:
+        results = find_interaction(interaction, protein)
     print(results)  # what happens to these?
+    
     with open('complex_system.pickle', 'rb') as f:
         p = pickle.load(f) + results
     with open('complex_system.pickle', 'wb') as f:
@@ -139,6 +167,14 @@ def run_single_direc(direc):
     init_velocity = float(out_data["init_velocity"])
     num_smd_cycles = int(out_data["num_smd_cycles"])
     gpu_id = int(out_data["gpu_id"])
+    
+    try:
+        lig_coords = [float(x) for x in out_data['lig_coords'].split(' ')]
+        lig_atomnum = int(out_data['lig_atomnum'])
+        
+    except IndexError:
+        lig_coords = None
+        lig_atomnum = None
 
     save_dir = Path(direc, 'duck_runs')
     if not save_dir.exists(): save_dir.mkdir()
