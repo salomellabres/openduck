@@ -77,7 +77,7 @@ def prepare_sys(protein, ligand, interaction, chunk, gpu_id, force_constant_eq=1
     # Now find the interaction and save to a file
     
     if (lig_coords is not None) and (lig_atomnum is not None):
-        results = find_ligand_interaction()
+        results = find_ligand_interaction(res_atom=interaction, protein_file=protein, ligand_coords=lig_coords, ligand_atomnum=lig_atomnum)
     else:
         results = find_interaction(interaction, protein)
     print(results)  # what happens to these?
