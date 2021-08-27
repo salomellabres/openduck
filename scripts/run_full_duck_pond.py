@@ -23,7 +23,7 @@ from duck.utils.check_system import check_if_equlibrated
 from duck.steps.normal_md import perform_md
 from duck.steps.steered_md import run_steered_md
 
-def find_ligand_interaction(res_atom=None, protein_file=None, ligand_coords, ligand_atomnum):
+def find_ligand_interaction(res_atom=None, protein_file=None, ligand_coords=None, ligand_atomnum=None):
     output_file = "indice.text"
     if not res_atom or prot_file:
         if os.path.isfile(output_file):
