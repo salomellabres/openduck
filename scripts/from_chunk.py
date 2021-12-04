@@ -29,15 +29,34 @@ def run_single_direc(direc):
     num_smd_cycles = int(out_data["num_smd_cycles"])
     gpu_id = int(out_data["gpu_id"])
 
+    try:
+        buffers = int(out_data["ignore_buffers"])
+        if buffers == 0:
+            buffers = False
+        else:
+            buffers = True
+    except KeyError:
+        buffers = False
+
+    try:
+        lig_coords = [float(x) for x in out_data['lig_coords'].split(' ')]
+        lig_atomnum = int(out_data['lig_atomnum'])
+    except Exception as e:
+        print(e)
+        lig_coords = None
+        lig_atomnum = None
+
     save_dir = Path(direc, 'duck_runs')
     if not save_dir.exists(): save_dir.mkdir()
-
 
     prepare_sys(protein=protein_file,
                 ligand=ligand_file,
                 interaction=protein_interaction,
                 chunk=chunk_file,
-                gpu_id=gpu_id)
+                gpu_id=gpu_id,
+		lig_coords=lig_coords,
+		lig_atomnum=lig_atomnum)
+    save_dir = Path(direc, 'duck_runs')
 
     pickle_path = Path('complex_system.pickle')
     new_pickle_path = Path('cs.pickle')
