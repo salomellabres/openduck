@@ -4,7 +4,9 @@ import shutil
 import sys
 from pathlib import Path
 from os import chdir
+from os.path import isfile
 import yaml
+import json
 import requests
 import operator
 import math
@@ -25,15 +27,15 @@ from duck.steps.steered_md import run_steered_md
 
 def find_ligand_interaction(res_atom=None, protein_file=None, ligand_coords=None, ligand_atomnum=None):
     output_file = "indice.text"
-    if not res_atom or prot_file:
-        if os.path.isfile(output_file):
+    if not res_atom or protein_file:
+        if isfile(output_file):
             return json.load(open(output_file))
     # Read files
     print("loading pickle")
     pickle_in = open("complex_system.pickle", "rb")
     combined_pmd = pickle.load(pickle_in)[0]
     pickle_in.close()
-    distance_atom_1, prot_atom = find_atom(res_atom, prot_file, combined_pmd)
+    distance_atom_1, prot_atom = find_atom(res_atom, protein_file, combined_pmd)
     distance_atom_2 = [
         (x.idx, distance2(x, ligand_coords)) for x in combined_pmd.atoms if (is_lig(x) and x.atomic_number == ligand_atomnum)
     ]
@@ -43,7 +45,7 @@ def find_ligand_interaction(res_atom=None, protein_file=None, ligand_coords=None
     # The ligand one
     index_two = distance_atom_2[0][0]
     out_res = [index_one, index_two, math.sqrt(distance_atom_2[0][1])]
-    return index_one, index_two, out_res, distance_atom_2[0][1]
+    return out_res
 
 def duck_chunk(protein, ligand, interaction, cutoff, ignore_buffers=False):
     """
@@ -89,7 +91,7 @@ def prepare_sys(protein, ligand, interaction, chunk, gpu_id, force_constant_eq=1
 
     #     pickle.dump(l, 'complex_system.pickle')
     # Now do the equlibration
-    do_equlibrate(force_constant_equilibrate=force_constant_eq, gpu_id=gpu_id)
+    do_equlibrate(force_constant_equilibrate=force_constant_eq, gpu_id=gpu_id, keyInteraction=results)
     if not check_if_equlibrated("density.csv", 1):
         raise EquilibrationError("System is not equilibrated.")
 
@@ -167,12 +169,21 @@ def run_single_direc(direc):
     init_velocity = float(out_data["init_velocity"])
     num_smd_cycles = int(out_data["num_smd_cycles"])
     gpu_id = int(out_data["gpu_id"])
-    
+    try:
+        buffers = int(out_data["ignore_buffers"])
+        if buffers == 0:
+            buffers = False
+        else:
+            buffers = True
+    except KeyError:
+        buffers = False
+
     try:
         lig_coords = [float(x) for x in out_data['lig_coords'].split(' ')]
         lig_atomnum = int(out_data['lig_atomnum'])
         
-    except IndexError:
+    except Exception as e:
+        print(e)
         lig_coords = None
         lig_atomnum = None
 
@@ -182,14 +193,17 @@ def run_single_direc(direc):
     chunk_prot_fname = duck_chunk(protein=protein_file,
                                  ligand=ligand_file,
                                  interaction=protein_interaction,
-                                 cutoff=cutoff)
+                                 cutoff=cutoff,
+                                 ignore_buffers=buffers)
 
 
     prepare_sys(protein=protein_file,
                 ligand=ligand_file,
                 interaction=protein_interaction,
                 chunk=str(Path(direc,chunk_prot_fname)),
-                gpu_id=gpu_id)
+                gpu_id=gpu_id,
+		lig_coords=lig_coords,
+		lig_atomnum=lig_atomnum)
 
     pickle_path = Path('complex_system.pickle')
     new_pickle_path = Path('cs.pickle')

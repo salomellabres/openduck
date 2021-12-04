@@ -7,6 +7,7 @@ from pdbfixer import PDBFixer  # for solvating
 import sys
 import pickle
 from duck.utils.gen_system import generateSMIRNOFFStructureRDK
+from pathlib import Path
 
 
 def find_box_size(input_file="complex.pdb", add_factor=20):
@@ -28,14 +29,19 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml"):
     protein = parmed.load_file(protein_file)
     protein.write_pdb("fixed.pdb")
     print("loading system")
-    protein = parmed.load_file("fixed.pdb")["!(:HOH,NA,CL)"]  # remove ions and water
+   # protein = parmed.load_file("fixed.pdb")["!(:HOH,NA,CL)"]  # remove ions and water
+    protein = parmed.load_file("fixed.pdb")  # don't remove ions and water
     forcefield = app.ForceField(forcefield_str)
     protein_system = forcefield.createSystem(protein.topology)
     protein_pmd = parmed.openmm.load_topology(
         protein.topology, protein_system, protein.positions
     )
     protein_pmd.save("protein_prepared.pdb", overwrite=True)
-    prot_lig_pmd = protein_pmd + ligand_pmd
+    if Path("waters_to_retain.pdb").exists():
+        waters_retained = parmed.load_file("waters_to_retain.pdb")
+        prot_lig_pmd = protein_pmd + ligand_pmd + waters_retained
+    else:
+        prot_lig_pmd = protein_pmd + ligand_pmd
     prot_lig_pmd.save("complex.pdb", overwrite=True)
     print("Solvation")
     fixer = PDBFixer("complex.pdb")
