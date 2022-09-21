@@ -1,6 +1,7 @@
 import simtk.openmm as mm
 import simtk.openmm.app as app
 import simtk.unit as u
+from parmed.openmm import NetCDFReporter
 import pickle
 from duck.utils import duck_stuff
 from duck.utils import cal_ints
@@ -84,6 +85,7 @@ def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None):
     simulation = duck_stuff.setUpNPTEquilibration(system, combined_pmd,platform, platformProperties, positions, velocities)
     # Reporters
     simulation.reporters.append(app.StateDataReporter("density.csv", 1000, time=True, potentialEnergy=True, temperature=True, density=True, remainingTime=True, speed=True, totalSteps=50000))
+    simulation.reporters.append(NetCDFReporter("3_eq.nc", 1000, vels=True))
     # Correcting the density
     print("Correcting density")
     simulation.step(50000) # 0.01 ns
@@ -91,9 +93,11 @@ def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None):
     positions = simulation.context.getState(getPositions=True).getPositions()
     velocities = simulation.context.getState(getVelocities=True).getVelocities()
     app.PDBFile.writeFile(simulation.topology, positions, open('density_final.pdb', 'w'))
-    #saving simulation stage
+
     checkpoint = 'equil.chk'
     simulation.saveCheckpoint(checkpoint)
+
+
     return [checkpoint]
 
 if __name__ == "__main__":

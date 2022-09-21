@@ -211,11 +211,11 @@ prepare_duck_and_launch(){
          mkdir $dir
          cd $dir
          if [ "$nu" == "0" ]; then
-            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../system_complex.inpcrd
-            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../system_complex.inpcrd" > cmd${nu}
+            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst" > cmd${nu}
          else
-            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../system_complex.inpcrd
-            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../system_complex.inpcrd" > cmd${nu}
+            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../3_eq.rst" > cmd${nu}
          fi
          cd ..  
       elif [ "$temp" == '325K' ]; then
@@ -223,11 +223,11 @@ prepare_duck_and_launch(){
          mkdir $dir
          cd $dir
 	 if [ "$nu" == "0" ]; then
-            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../system_complex.inpcrd
-            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../system_complex.inpcrd" > cmd${nu}
+            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst" > cmd${nu}
          else
-            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../system_complex.inpcrd
-            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../system_complex.inpcrd" > cmd${nu}
+            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../3_eq.rst" > cmd${nu}
          fi 
          cd ..
       fi
@@ -267,10 +267,10 @@ min_wqb=7
 # Minimization&Equilibration
 pmemd.cuda -O -i 1_min.in -o min.out -p system_complex.prmtop -c system_complex.inpcrd -r min.rst -ref system_complex.inpcrd
 pmemd.cuda -O -i 2_heat150.in -o 2_heat150.out -p system_complex.prmtop -c min.rst -r  2_heat150.rst -x 2_heat150.nc -ref system_complex.inpcrd
-pmemd.cuda -O -i 2_heat200.in -o 2_heat200.out -p system_complex.prmtop -c 2_heat150.rst -r 2_heat200.rst -x 2_heat200.nc -ref system_complex.inpcrd
-pmemd.cuda -O -i 2_heat250.in -o 2_heat250.out -p system_complex.prmtop -c 2_heat200.rst -r 2_heat250.rst -x 2_heat250.nc -ref system_complex.inpcrd
-pmemd.cuda -O -i 2_heat300.in -o 2_heat300.out -p system_complex.prmtop -c 2_heat250.rst -r 2_heat300.rst -x 2_heat300.nc -ref system_complex.inpcrd
-pmemd.cuda -O -i 3_eq.in -o 3_eq.out -p system_complex.prmtop -c 2_heat300.rst -r 3_eq.rst -x 3_eq.nc -ref system_complex.inpcrd -e 3_eq.ene
+pmemd.cuda -O -i 2_heat200.in -o 2_heat200.out -p system_complex.prmtop -c 2_heat150.rst -r 2_heat200.rst -x 2_heat200.nc -ref 2_heat150.rst
+pmemd.cuda -O -i 2_heat250.in -o 2_heat250.out -p system_complex.prmtop -c 2_heat200.rst -r 2_heat250.rst -x 2_heat250.nc -ref 2_heat200.rst
+pmemd.cuda -O -i 2_heat300.in -o 2_heat300.out -p system_complex.prmtop -c 2_heat250.rst -r 2_heat300.rst -x 2_heat300.nc -ref 2_heat_250.rst
+pmemd.cuda -O -i 3_eq.in -o 3_eq.out -p system_complex.prmtop -c 2_heat300.rst -r 3_eq.rst -x 3_eq.nc -ref 2_heat300.rst -e 3_eq.ene
 
 #Launch DUck 0
 prepare_duck_and_launch 0 0 300K
@@ -282,9 +282,9 @@ check_WQB $min_wqb
 #For each replica wanted do: MD, prepare SMD & launch SMD
 for ((i=1;i<=$replicas;++i)); do
    if [ "$i" == "1" ]; then
-      pmemd.cuda -O -i md.in -o md1.out -p system_complex.prmtop -c 3_eq.rst -r md1.rst -x md1.nc -ref system_complex.inpcrd
+      pmemd.cuda -O -i md.in -o md1.out -p system_complex.prmtop -c 3_eq.rst -r md1.rst -x md1.nc -ref 3_eq.rst
    else
-      pmemd.cuda -O -i md.in -o md${i}.out -p system_complex.prmtop -c md$((i-1)).rst -r md${i}.rst -x md${i}.nc -ref system_complex.inpcrd   
+      pmemd.cuda -O -i md.in -o md${i}.out -p system_complex.prmtop -c md$((i-1)).rst -r md${i}.rst -x md${i}.nc -ref 3_eq.rst
    fi
 
    prepare_duck_and_launch $i $i 300K
