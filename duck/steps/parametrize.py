@@ -38,6 +38,7 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml"):
     )
     protein_pmd.save("protein_prepared.pdb", overwrite=True)
     if Path("waters_to_retain.pdb").exists():
+        print(f'waters retained from {Path("waters_to_retain.pdb")}')
         waters_retained = parmed.load_file("waters_to_retain.pdb")
         prot_lig_pmd = protein_pmd + ligand_pmd + waters_retained
     else:
