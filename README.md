@@ -7,13 +7,13 @@
 
 ## Conda
 
-Make a fresh Conda environment
+Make a fresh Conda environment, notice conda might take long time to resolve it I don't know why.
 ```
 git clone https://github.com/mihaelasmilova/duck
 cd duck
 conda env create -f environment.yaml 
 conda activate openduck_latest
-python setup.py -install
+python setup.py install
 ```
 
 #### Running
@@ -45,4 +45,13 @@ num_smd_cycles: 1
 gpu_id: 0
 apo_pdb_file: '1n2v_apo.pdb'
 mol_file: ligand.mol
+```
+
+##### Preparing system for amber
+
+Script to prepare the prot-chunk system using open duck, but to launch the simulations in amber
+If you want to keep structural waters, have a file with them called "waters_to_retain.pdb"
+```{bash}
+source activate openduck_latest
+python ./scripts/duck_prepare_sys_for_amber.py -p receptor.pdb -l ligand.mol -c chunked_receptor.pdb -i interaction_string(e.g. A_ASN_140_ND2) --queue-template Slurm|SGE
 ```

@@ -181,6 +181,88 @@ def re_range(lst):
         result.append(','.join(map(str, lst[scan:])))
     return ','.join(result)
 
+def write_getWqbValues():
+    script_string = """#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import numpy as np
+import os
+import sys
+
+def get_Wqb_value_AMBER(file_duck_dat):
+    f = open(file_duck_dat,'r')
+    data = []
+    for line in f:
+        a = line.split()
+        data.append([float(a[0]), float(a[1]), float(a[2]), float(a[3])])
+    f.close()
+    data = np.array(data)
+    Work = data[:,3]
+    #split it into segments of 200 points 
+    num_segments = int(len(data)/200) 
+    #alayze each segment to see if minimum in the segment is the local minimum
+    #local minimum is the point with the lowest value of 200 neighbouring points
+    #first local minumum is miminum used later to duck analysis
+    for segment in range(num_segments):
+        #detecting minium inthe segment
+        sub_data = data[segment * 200 : (segment + 1) * 200]
+        sub_Work = sub_data[:,3] 
+        index_local = np.argmin(sub_Work)
+        #segment of 200 points arround detected minimum
+        index_global = index_local + segment * 200
+        if index_global > 100:
+            sub2_data = data[index_global - 100 : index_global + 101]
+        else:
+            sub2_data = data[0 : index_global + 101]
+        sub2_Work = sub2_data[:,3]
+        index_local2 = np.argmin(sub2_Work)
+        if index_global < 100:
+            if index_local2 == index_global:
+                
+                Wqb_min_index = index_global
+            break
+        else:
+            if index_local2 == 100:
+                Wqb_min_index = index_global
+                break
+    
+    Wqb_min = Work[Wqb_min_index]
+    sub_max_data = data[Wqb_min_index:]
+    sub_max_Work = sub_max_data[:,3]
+    Wqb_max_index = np.argmax(sub_max_Work)
+    Wqb_max_index_global = Wqb_max_index + Wqb_min_index
+    
+    Wqb_max = max(sub_max_Work)
+    
+    Wqb_value = Wqb_max - Wqb_min
+    
+    return(Wqb_value, data, Wqb_min)
+
+def get_Wqb_value_AMBER_all(prefix = 'DUCK', file = 'duck.dat'):
+    folder = []
+    for fol in os.listdir(os.getcwd()):
+        if fol.startswith(prefix):
+            folder.append(fol)
+            
+    Wqb_values = []
+    for fol in folder:
+        if os.path.isfile(fol+'/'+file):
+            Wqb_data = get_Wqb_value_AMBER(fol+'/'+file)
+            Wqb_values.append(Wqb_data[0])
+
+    Wqb = min(Wqb_values)
+    return(Wqb)
+    
+
+if __name__ == '__main__':
+    if len(sys.argv) > 2:
+        print(sys.argv)
+        print(get_Wqb_value_AMBER_all(sys.argv[1],sys.argv[2]))
+    elif len(sys.argv) > 1:
+        print(get_Wqb_value_AMBER_all(sys.argv[1]))
+    else:
+        print(get_Wqb_value_AMBER_all())"""
+    write_string_to_file('getWqbValues.py', script_string)
+
 def write_all_inputs(structure,interaction):
     chunk_residues = extract_residuenumbers(structure)
     write_min_and_equil_inputs(chunk_residues, interaction)
@@ -188,17 +270,7 @@ def write_all_inputs(structure,interaction):
     write_smd_inputs(chunk_residues, interaction)
 
 def write_queue_template(template):
-    queue_strings = {'Slurm': """#!/bin/bash
-#SBATCH --job-name=DUck   
-#SBATCH -D .                       
-#SBATCH --time=72:00:00            
-#SBATCH --output=DUck.q.o         
-#SBATCH --error=DUck.q.e          
-#SBATCH --ntasks=1                 
-#SBATCH --gres=gpu:1               
-#SBATCH --cpus-per-task=1      
-           
-##### FUNCTIONS ####
+    functions_str="""##### FUNCTIONS ####
 #Function adapted from 'submit_duck_smd_gpu.csh' of the DUck std pipeline
 prepare_duck_and_launch(){
    nustart=$1
@@ -251,19 +323,9 @@ check_WQB(){
       exit 
    fi
 }
+    """
 
-
-
-#### Modules ####
-#Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB
-module load amber/20
-
-
-#### PARAMS ####
-replicas=5
-min_wqb=7
-
-#### Runing Duck ####
+    commands_str="""#### Runing Duck ####
 # Minimization&Equilibration
 pmemd.cuda -O -i 1_min.in -o min.out -p system_complex.prmtop -c system_complex.inpcrd -r min.rst -ref system_complex.inpcrd
 pmemd.cuda -O -i 2_heat150.in -o 2_heat150.out -p system_complex.prmtop -c min.rst -r  2_heat150.rst -x 2_heat150.nc -ref system_complex.inpcrd
@@ -292,6 +354,78 @@ for ((i=1;i<=$replicas;++i)); do
    check_WQB $min_wqb
 
 done
+    """
+
+
+    queue_strings = {'Slurm': f"""#!/bin/bash
+#SBATCH --job-name=DUck   
+#SBATCH -D .                       
+#SBATCH --time=72:00:00            
+#SBATCH --output=DUck.q.o         
+#SBATCH --error=DUck.q.e          
+#SBATCH --ntasks=1                 
+#SBATCH --gres=gpu:1               
+#SBATCH --cpus-per-task=1      
+
+{functions_str}
+
+#### Modules ####
+#Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB
+module load amber/20
+
+#### PARAMS ####
+replicas=5
+min_wqb=7
+
+{commands_str}
+
+exit
+    """,
+    'SGE':f"""#!/bin/bash
+#$ -N DUck_queue          # The name of the job, can be whatever makes sense to you
+#$ -S /bin/bash          # Force sh if not Sun Grid Engine default shell
+#$ -cwd                 # The batchsystem should use the current directory as working directory.
+#$ -q fartorgpu.q            # Queue name where the job should be placed into.
+#$ -o DUck.q.o             # Redirect output stream to this file.
+#$ -e DUck.q.e             # Redirect error stream to this file.
+#$ -l h_rt=15:00:00 # Time limit
+#$ -pe gpu 1
+#$ -m e
+
+{functions_str}
+
+#### Modules ####
+#How to check modules in the queue
+#module_fartor av
+
+#Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB)
+. /etc/profile
+module load amber/20_cuda9.0_ompi
+
+#Necessary to use a free GPU
+export CUDA_VISIBLE_DEVICES=`cat $TMPDIR/.gpus`
+
+#### Coping the files to node ####
+#Things will need to run in $TMPDIR
+LIG_TARGET=$PWD
+cp -r $LIG_TARGET/* $TMPDIR
+cd $TMPDIR
+
+#Remove local output files, as it removes the queue ones when copying back
+rm DUck.q.o DUck.q.e
+
+#Where is the calculation being done?
+echo "TMPDIR is $TMPDIR"
+
+#### PARAMS ####
+replicas=5
+min_wqb=7
+
+{commands_str}
+
+#### Coping the files back to local ####
+cp -r ./* $LIG_TARGET/
+cd $LIG_TARGET
 
 exit
     """}
@@ -299,3 +433,4 @@ exit
     if template not in queue_strings:
         print('Warning wrong queue template. Only {} accepted'.format(list(queue_strings.keys())))
     write_string_to_file('merged_duck_template.q', queue_strings[template])
+    write_getWqbValues()
