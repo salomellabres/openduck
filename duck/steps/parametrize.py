@@ -22,7 +22,7 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
 
 
-def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml"):
+def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=False):
     print("Preparing ligand")
     ligand_pmd = generateSMIRNOFFStructureRDK(ligand_file)
     print("Fixing protein")
@@ -79,15 +79,22 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml"):
     print("Parametrizing solvent done")
     print("merge structures")
     combined_pmd = protein_pmd + ligand_pmd + ions_pmd + solvent_pmd
-    combined_pmd.save("system_complex.prmtop", overwrite=True)
-    print("merge done")
+    #combined_pmd.get_box()
     combined_pmd.box_vectors = complex.box_vectors
+    combined_pmd.save("system_complex.prmtop", overwrite=True)
+    if hmr:
+        print('Performing Hydrogen Mass Repartition')
+        hmass_action = parmed.tools.actions.HMassRepartition(combined_pmd)
+        hmass_action.execute()
+        combined_pmd.save('HMR_system_complex.prmtop', overwrite=True)
+
+    print("merge done")
     print("writing pickle")
     complex = "./complex_system.pickle"
     pickle_out = open(complex, "wb")
     pickle.dump([combined_pmd], pickle_out)
     pickle_out.close()
-    return [complex]
+    return [combined_pmd]
 
 
 if __name__ == "__main__":
@@ -95,4 +102,4 @@ if __name__ == "__main__":
         sys.exit("USAGE : python parametrize.py protein.pdb ligand.mol2\n")
     ligand_file = sys.argv[2]
     protein_file = sys.argv[1]
-    prepare_system(ligand_file, protein_file)
+    system = prepare_system(ligand_file, protein_file, hmr=True)

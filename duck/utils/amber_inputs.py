@@ -80,7 +80,13 @@ DISANG=dist_md.rst
     write_string_to_file('3_eq.in', eq_str)
     write_string_to_file('dist_md.rst', dist_str)
 
-def write_md_inputs(chunk_residues, interaction):
+def write_md_inputs(chunk_residues, interaction, hmr):
+    time_step = '0.002'
+    if hmr:
+        time_step = '0.004'
+    top = '{top}'
+    if hmr:
+        top = 'HMR_'+top
     md_str =f"""&cntrl
 ntx=5, irest=1,
 iwrap=1,
@@ -88,7 +94,7 @@ ntxo=1, ntpr=2000, ntwx=0, ntwv=0, ntwe=0, ntwr=0, ioutfm=1,
 ntc=2, ntf=2,
 ntb=1, cut=9.0,
 ntt=3, temp0=300.0, gamma_ln=4.0, ig=-1,
-nstlim=250000, dt=0.002,
+nstlim=250000, dt={time_step},
 ntr=1,
 restraintmask=':{chunk_residues} & !@H=', 
 restraint_wt=1.0,
@@ -103,12 +109,15 @@ DISANG=dist_md.rst
         write_string_to_file('dist_md.rst', dist_str)
     write_string_to_file('md.in', md_str)
 
-def write_smd_inputs(chunk_residues, interaction):
+def write_smd_inputs(chunk_residues, interaction, hmr):
+    time_step = '0.002'
+    if hmr:
+        time_step = '0.004'
     smd_str=f"""ntx = 5, irest=1,
 iwrap=1,
 ntb=1,
 ntt=3, temp0=300.0, gamma_ln=4.0,
-nstlim=250000, dt=0.002,
+nstlim=250000, dt={time_step},
 ntc=2, ntf=2, cut=9.0,
 ntxo=1, ntpr=2000, ntwx=0, ntwe=1000, ntwr=0, ioutfm=1,
 jar=1,
@@ -125,7 +134,7 @@ LISTOUT=POUT
 iwrap=1,
 ntb=1,
 ntt=3, temp0=325.0, gamma_ln=4.0,
-nstlim=250000, dt=0.002,
+nstlim=250000, dt={time_step},
 ntc=2, ntf=2, cut=9.0,
 ntxo=1, ntpr=2000, ntwx=0, ntwe=1000, ntwr=0, ioutfm=1,
 jar=1,
@@ -263,16 +272,19 @@ if __name__ == '__main__':
         print(get_Wqb_value_AMBER_all())"""
     write_string_to_file('getWqbValues.py', script_string)
 
-def write_all_inputs(structure,interaction):
+def write_all_inputs(structure,interaction, hmr=False):
     chunk_residues = extract_residuenumbers(structure)
     write_min_and_equil_inputs(chunk_residues, interaction)
-    write_md_inputs(chunk_residues, interaction)
-    write_smd_inputs(chunk_residues, interaction)
+    write_md_inputs(chunk_residues, interaction, hmr=hmr)
+    write_smd_inputs(chunk_residues, interaction,hmr=hmr)
 
-def write_queue_template(template):
+def write_queue_template(template, hmr = False):
+    top = 'system_complex.prmtop'
+    if hmr: top = 'HMR_'+top
+    print(top)
     functions_str="""##### FUNCTIONS ####
 #Function adapted from 'submit_duck_smd_gpu.csh' of the DUck std pipeline
-prepare_duck_and_launch(){
+prepare_duck_and_launch(){{
    nustart=$1
    nuend=$2
    temp=$3
@@ -283,11 +295,11 @@ prepare_duck_and_launch(){
          mkdir $dir
          cd $dir
          if [ "$nu" == "0" ]; then
-            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
-            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst" > cmd${nu}
+            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../{top} -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../{top} -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst" > cmd${nu}
          else
-            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
-            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../3_eq.rst" > cmd${nu}
+            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../{top} -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../{top} -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../3_eq.rst" > cmd${nu}
          fi
          cd ..  
       elif [ "$temp" == '325K' ]; then
@@ -295,24 +307,24 @@ prepare_duck_and_launch(){
          mkdir $dir
          cd $dir
 	 if [ "$nu" == "0" ]; then
-            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
-            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst" > cmd${nu}
+            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../{top} -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../{top} -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst" > cmd${nu}
          else
-            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
-            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../system_complex.prmtop -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../3_eq.rst" > cmd${nu}
+            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../{top} -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../{top} -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../3_eq.rst" > cmd${nu}
          fi 
          cd ..
       fi
       nu=$((nu+1))
    done
 
-}
+}}
 
 # Function to check if WQB is lower than 0.1 using getWqbValues.py
 # getWqbValues.py is a script from Maciej modified.
 # We use this one instead of the R version, as R is not available in the IQTC
 
-check_WQB(){
+check_WQB(){{
    wqb_limit=$1
    lowest_wqb=$(python getWqbValues.py)
    echo $lowest_wqb > wqb.log
@@ -322,17 +334,17 @@ check_WQB(){
       cp -r ./* $LIG_TARGET/
       exit 
    fi
-}
-    """
+}}
+    """.format(top=top, nu='{nu}',wqb_limit='{wqb_limit}')
 
     commands_str="""#### Runing Duck ####
 # Minimization&Equilibration
-pmemd.cuda -O -i 1_min.in -o min.out -p system_complex.prmtop -c system_complex.inpcrd -r min.rst -ref system_complex.inpcrd
-pmemd.cuda -O -i 2_heat150.in -o 2_heat150.out -p system_complex.prmtop -c min.rst -r  2_heat150.rst -x 2_heat150.nc -ref system_complex.inpcrd
-pmemd.cuda -O -i 2_heat200.in -o 2_heat200.out -p system_complex.prmtop -c 2_heat150.rst -r 2_heat200.rst -x 2_heat200.nc -ref 2_heat150.rst
-pmemd.cuda -O -i 2_heat250.in -o 2_heat250.out -p system_complex.prmtop -c 2_heat200.rst -r 2_heat250.rst -x 2_heat250.nc -ref 2_heat200.rst
-pmemd.cuda -O -i 2_heat300.in -o 2_heat300.out -p system_complex.prmtop -c 2_heat250.rst -r 2_heat300.rst -x 2_heat300.nc -ref 2_heat_250.rst
-pmemd.cuda -O -i 3_eq.in -o 3_eq.out -p system_complex.prmtop -c 2_heat300.rst -r 3_eq.rst -x 3_eq.nc -ref 2_heat300.rst -e 3_eq.ene
+pmemd.cuda -O -i 1_min.in -o min.out -p {top} -c system_complex.inpcrd -r min.rst -ref system_complex.inpcrd
+pmemd.cuda -O -i 2_heat150.in -o 2_heat150.out -p {top} -c min.rst -r  2_heat150.rst -x 2_heat150.nc -ref system_complex.inpcrd
+pmemd.cuda -O -i 2_heat200.in -o 2_heat200.out -p {top} -c 2_heat150.rst -r 2_heat200.rst -x 2_heat200.nc -ref 2_heat150.rst
+pmemd.cuda -O -i 2_heat250.in -o 2_heat250.out -p {top} -c 2_heat200.rst -r 2_heat250.rst -x 2_heat250.nc -ref 2_heat200.rst
+pmemd.cuda -O -i 2_heat300.in -o 2_heat300.out -p {top} -c 2_heat250.rst -r 2_heat300.rst -x 2_heat300.nc -ref 2_heat250.rst
+pmemd.cuda -O -i 3_eq.in -o 3_eq.out -p {top} -c 2_heat300.rst -r 3_eq.rst -x 3_eq.nc -ref 2_heat300.rst -e 3_eq.ene
 
 #Launch DUck 0
 prepare_duck_and_launch 0 0 300K
@@ -344,9 +356,9 @@ check_WQB $min_wqb
 #For each replica wanted do: MD, prepare SMD & launch SMD
 for ((i=1;i<=$replicas;++i)); do
    if [ "$i" == "1" ]; then
-      pmemd.cuda -O -i md.in -o md1.out -p system_complex.prmtop -c 3_eq.rst -r md1.rst -x md1.nc -ref 3_eq.rst
+      pmemd.cuda -O -i md.in -o md1.out -p {top} -c 3_eq.rst -r md1.rst -x md1.nc -ref 3_eq.rst
    else
-      pmemd.cuda -O -i md.in -o md${i}.out -p system_complex.prmtop -c md$((i-1)).rst -r md${i}.rst -x md${i}.nc -ref 3_eq.rst
+      pmemd.cuda -O -i md.in -o md${i}.out -p {top} -c md$((i-1)).rst -r md${i}.rst -x md${i}.nc -ref 3_eq.rst
    fi
 
    prepare_duck_and_launch $i $i 300K
@@ -354,10 +366,10 @@ for ((i=1;i<=$replicas;++i)); do
    check_WQB $min_wqb
 
 done
-    """
+    """.format(top=top, i='{i}')
 
 
-    queue_strings = {'Slurm': f"""#!/bin/bash
+    queue_strings = {'Slurm': """#!/bin/bash
 #SBATCH --job-name=DUck   
 #SBATCH -D .                       
 #SBATCH --time=72:00:00            
@@ -367,7 +379,7 @@ done
 #SBATCH --gres=gpu:1               
 #SBATCH --cpus-per-task=1      
 
-{functions_str}
+%s
 
 #### Modules ####
 #Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB
@@ -377,10 +389,10 @@ module load amber/20
 replicas=5
 min_wqb=7
 
-{commands_str}
-
+%s
 exit
-    """,
+    """ %(functions_str,
+    commands_str),
     'SGE':f"""#!/bin/bash
 #$ -N DUck_queue          # The name of the job, can be whatever makes sense to you
 #$ -S /bin/bash          # Force sh if not Sun Grid Engine default shell
@@ -434,3 +446,11 @@ exit
         print('Warning wrong queue template. Only {} accepted'.format(list(queue_strings.keys())))
     write_string_to_file('merged_duck_template.q', queue_strings[template])
     write_getWqbValues()
+
+if __name__=='__main__':
+    import sys
+    if len(sys.argv) != 3:
+        print(f'usage: python {sys.argv[0]} template hmr_boolean')
+    template = sys.argv[1]
+    hmr = sys.argv[2]
+    write_queue_template(template, hmr=hmr)
