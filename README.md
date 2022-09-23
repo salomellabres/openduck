@@ -53,5 +53,5 @@ Script to prepare the prot-chunk system using open duck, but to launch the simul
 If you want to keep structural waters, have a file with them called "waters_to_retain.pdb"
 ```{bash}
 source activate openduck_latest
-python ./scripts/duck_prepare_sys_for_amber.py -p receptor.pdb -l ligand.mol -c chunked_receptor.pdb -i interaction_string(e.g. A_ASN_140_ND2) --queue-template Slurm|SGE
+python ./scripts/duck_prepare_sys_for_amber.py -p receptor.pdb -l ligand.mol -c chunked_receptor.pdb -i interaction_string(e.g. A_ASN_140_ND2) --queue-template Slurm|SGE --HMR True
 ```
