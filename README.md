@@ -9,7 +9,7 @@
 
 Make a fresh Conda environment, notice conda might take long time to resolve it I don't know why.
 ```
-git clone https://github.com/mihaelasmilova/duck
+git clone git@github.com:AlvaroSmorras/openduck.git
 cd duck
 conda env create -f environment.yaml 
 conda activate openduck_latest
