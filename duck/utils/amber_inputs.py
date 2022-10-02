@@ -4,7 +4,7 @@ def write_string_to_file(file,string):
     with open(file, 'w') as fh:
         fh.write(string)
 
-def write_min_and_equil_inputs(chunk_residues, interaction):
+def write_min_and_equil_inputs(chunk_residues, interaction, hmr=False):
     # defining strings to write
     min_str = f"""&cntrl
 imin=1, maxcyc=10000,
@@ -48,15 +48,18 @@ nmropt=1,
 &wt type='END' /
 DISANG=dist_md.rst
 """
+    time_step = '0.002'
+    if hmr:
+        time_step = '0.004'
     eq_str = f"""&cntrl
 imin=0,
 ntx=5, irest=1,
-iwrap=1,
+iwrap=0,
 ntxo=1, ntpr=2000, ntwx=0, ntwv=0, ntwe=0, ntwr=0, ioutfm=1,
 ntp=1, ntc=2, taup=2.0, 
 ntb=2, ntf=2, cut=9.0,
 ntt=3, temp0=300.0, ig=-1,  gamma_ln=4.0,
-nstlim=500000, dt=0.002,
+nstlim=500000, dt={time_step},
 ntr=1,
 restraintmask=':{chunk_residues} & !@H=', 
 restraint_wt=1.0,
@@ -113,7 +116,8 @@ def write_smd_inputs(chunk_residues, interaction, hmr):
     time_step = '0.002'
     if hmr:
         time_step = '0.004'
-    smd_str=f"""ntx = 5, irest=1,
+    smd_str=f"""&cntrl
+ntx = 5, irest=1,
 iwrap=1,
 ntb=1,
 ntt=3, temp0=300.0, gamma_ln=4.0,
@@ -130,7 +134,8 @@ DUMPAVE=duck.dat
 LISTIN=POUT
 LISTOUT=POUT
     """
-    smd_325_str=f"""ntx = 5, irest=1,
+    smd_325_str=f"""&cntrl
+ntx = 5, irest=1,
 iwrap=1,
 ntb=1,
 ntt=3, temp0=325.0, gamma_ln=4.0,
@@ -274,7 +279,7 @@ if __name__ == '__main__':
 
 def write_all_inputs(structure,interaction, hmr=False):
     chunk_residues = extract_residuenumbers(structure)
-    write_min_and_equil_inputs(chunk_residues, interaction)
+    write_min_and_equil_inputs(chunk_residues, interaction, hmr=hmr)
     write_md_inputs(chunk_residues, interaction, hmr=hmr)
     write_smd_inputs(chunk_residues, interaction,hmr=hmr)
 
