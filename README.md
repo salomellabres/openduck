@@ -20,7 +20,7 @@ python setup.py install
 
 Activate conda and run like this:
 ```
-source activate openduck_latest
+conda activate openduck_latest
 python ./scripts/run_full_duck_pond.py -i inputs_file.txt
 ```
 
