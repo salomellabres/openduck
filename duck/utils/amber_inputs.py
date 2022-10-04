@@ -70,7 +70,7 @@ DISANG=dist_md.rst
     """
     prot_idx, lig_idx, pairmeandistance_i = interaction
     dist_str = f"""#Prevent dissociation by penalizing interaction break (>3.0A)
-&rst iat={prot_idx+1},{lig_idx+1}, r2=2.00, r3=3.00, r4=4.00, rk2=1.0, rk3=10.0, /
+&rst iat={prot_idx+1},{lig_idx+2}, r2=2.00, r3=3.00, r4=4.00, rk2=1.0, rk3=10.0, /
     """
 
     # writing inputs for minimization, equilibration and heating
@@ -154,7 +154,7 @@ LISTOUT=POUT
     """
     prot_idx, lig_idx, pairmeandistance_i = interaction
     dist_duck_str=f"""#change distance from (2.50) to unbound (5.00)
-&rst iat={prot_idx+1},{lig_idx+1}, r2=2.50, rk2=50.00, r2a=5.00, /
+&rst iat={prot_idx+1},{lig_idx+2}, r2=2.50, rk2=50.00, r2a=5.00, /
     """
     write_string_to_file('duck.in', smd_str)
     write_string_to_file('duck_325K.in', smd_325_str)
