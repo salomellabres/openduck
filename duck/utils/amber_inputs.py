@@ -92,7 +92,7 @@ def write_md_inputs(chunk_residues, interaction, hmr):
         top = 'HMR_'+top
     md_str =f"""&cntrl
 ntx=5, irest=1,
-iwrap=1,
+iwrap=0,
 ntxo=1, ntpr=2000, ntwx=0, ntwv=0, ntwe=0, ntwr=0, ioutfm=1,
 ntc=2, ntf=2,
 ntb=1, cut=9.0,
@@ -118,7 +118,7 @@ def write_smd_inputs(chunk_residues, interaction, hmr):
         time_step = '0.004'
     smd_str=f"""&cntrl
 ntx = 5, irest=1,
-iwrap=1,
+iwrap=0,
 ntb=1,
 ntt=3, temp0=300.0, gamma_ln=4.0,
 nstlim=250000, dt={time_step},
@@ -136,7 +136,7 @@ LISTOUT=POUT
     """
     smd_325_str=f"""&cntrl
 ntx = 5, irest=1,
-iwrap=1,
+iwrap=0,
 ntb=1,
 ntt=3, temp0=325.0, gamma_ln=4.0,
 nstlim=250000, dt={time_step},
@@ -283,10 +283,9 @@ def write_all_inputs(structure,interaction, hmr=False):
     write_md_inputs(chunk_residues, interaction, hmr=hmr)
     write_smd_inputs(chunk_residues, interaction,hmr=hmr)
 
-def write_queue_template(template, hmr = False):
+def write_queue_template(template, hmr = False, replicas=5, wqb_threshold=7, array_limit=False):
     top = 'system_complex.prmtop'
     if hmr: top = 'HMR_'+top
-    print(top)
     functions_str="""##### FUNCTIONS ####
 #Function adapted from 'submit_duck_smd_gpu.csh' of the DUck std pipeline
 prepare_duck_and_launch(){{
@@ -351,11 +350,12 @@ pmemd.cuda -O -i 2_heat250.in -o 2_heat250.out -p {top} -c 2_heat200.rst -r 2_he
 pmemd.cuda -O -i 2_heat300.in -o 2_heat300.out -p {top} -c 2_heat250.rst -r 2_heat300.rst -x 2_heat300.nc -ref 2_heat250.rst
 pmemd.cuda -O -i 3_eq.in -o 3_eq.out -p {top} -c 2_heat300.rst -r 3_eq.rst -x 3_eq.nc -ref 2_heat300.rst -e 3_eq.ene
 
-#Launch DUck 0
+#Launch DUck 0 and check wqb
 prepare_duck_and_launch 0 0 300K
-prepare_duck_and_launch 0 0 325K
+check_WQB $min_wqb
 
-#Check if WQB is not lower than the min
+#Launch DUck_325K 0 and check wqb
+prepare_duck_and_launch 0 0 325K
 check_WQB $min_wqb
 
 #For each replica wanted do: MD, prepare SMD & launch SMD
@@ -372,9 +372,13 @@ for ((i=1;i<=$replicas;++i)); do
 
 done
     """.format(top=top, i='{i}')
-
-
-    queue_strings = {'Slurm': """#!/bin/bash
+    params_str = f"""
+#### PARAMS ####
+replicas={replicas}
+min_wqb={wqb_threshold}
+    """
+    if not array_limit:
+        queue_strings = {'Slurm': f"""#!/bin/bash
 #SBATCH --job-name=DUck   
 #SBATCH -D .                       
 #SBATCH --time=72:00:00            
@@ -384,21 +388,18 @@ done
 #SBATCH --gres=gpu:1               
 #SBATCH --cpus-per-task=1      
 
-%s
+{functions_str}
 
 #### Modules ####
 #Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB
 module load amber/20
 
-#### PARAMS ####
-replicas=5
-min_wqb=7
+{params_str}
 
-%s
+{commands_str}
 exit
-    """ %(functions_str,
-    commands_str),
-    'SGE':f"""#!/bin/bash
+        """,
+        'SGE':f"""#!/bin/bash
 #$ -N DUck_queue          # The name of the job, can be whatever makes sense to you
 #$ -S /bin/bash          # Force sh if not Sun Grid Engine default shell
 #$ -cwd                 # The batchsystem should use the current directory as working directory.
@@ -434,9 +435,7 @@ rm DUck.q.o DUck.q.e
 #Where is the calculation being done?
 echo "TMPDIR is $TMPDIR"
 
-#### PARAMS ####
-replicas=5
-min_wqb=7
+{params_str}
 
 {commands_str}
 
@@ -445,11 +444,84 @@ cp -r ./* $LIG_TARGET/
 cd $LIG_TARGET
 
 exit
-    """}
+        """}
+    else:
+        queue_strings = {'Slurm': f"""#!/bin/bash
+#SBATCH --job-name=DUck   
+#SBATCH -D .                       
+#SBATCH --time=72:00:00            
+#SBATCH --output=DUck.q.o         
+#SBATCH --error=DUck.q.e          
+#SBATCH --ntasks=1                 
+#SBATCH --gres=gpu:1               
+#SBATCH --cpus-per-task=1
+#SBATCH --array=1-{array_limit}      
+
+{functions_str}
+
+#### Modules ####
+#Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB
+module load amber/20
+cd LIG_target_$SLURM_ARRAY_TASK_ID
+{params_str}
+
+{commands_str}
+cd ..
+exit
+        """,
+        'SGE':f"""#!/bin/bash
+#$ -N DUck_queue          # The name of the job, can be whatever makes sense to you
+#$ -S /bin/bash          # Force sh if not Sun Grid Engine default shell
+#$ -cwd                 # The batchsystem should use the current directory as working directory.
+#$ -q fartorgpu.q            # Queue name where the job should be placed into.
+#$ -o DUck.q.o             # Redirect output stream to this file.
+#$ -e DUck.q.e             # Redirect error stream to this file.
+#$ -l h_rt=15:00:00 # Time limit
+#$ -pe gpu 1
+#$ -m e
+#$ -t 1-{array_limit}
+
+{functions_str}
+
+#### Modules ####
+#How to check modules in the queue
+#module_fartor av
+
+#Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB)
+. /etc/profile
+module load amber/20_cuda9.0_ompi
+
+#Necessary to use a free GPU
+export CUDA_VISIBLE_DEVICES=`cat $TMPDIR/.gpus`
+
+#### Coping the files to node ####
+#Things will need to run in $TMPDIR
+LIG_TARGET=$PWD/LIG_target_$SGE_TASK_ID
+cp -r $LIG_TARGET/* $TMPDIR
+cd $TMPDIR
+
+#Remove local output files, as it removes the queue ones when copying back
+rm DUck.q.o DUck.q.e
+
+#Where is the calculation being done?
+echo "TMPDIR is $TMPDIR"
+
+{params_str}
+
+{commands_str}
+
+#### Coping the files back to local ####
+cp -r ./* $LIG_TARGET/
+cd $LIG_TARGET
+
+exit
+        """}
+
     print('Writing queue files')
     if template not in queue_strings:
         print('Warning wrong queue template. Only {} accepted'.format(list(queue_strings.keys())))
-    write_string_to_file('merged_duck_template.q', queue_strings[template])
+    if array_limit: write_string_to_file('array_duck_queue.q', queue_strings[template])
+    else: write_string_to_file('duck_queue.q', queue_strings[template])
     write_getWqbValues()
 
 if __name__=='__main__':

@@ -11,21 +11,23 @@ except ModuleNotFoundError:
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare system for dynamic undocking')
-    parser.add_argument('-p', '--protein', help='Apoprotein in PDB format')
+    parser.add_argument('-p', '--protein', help='chunk protein in PDB format')
     parser.add_argument('-l', '--ligand', help='Ligand in mol format')
     # parser.add_argument('-o', '--output', help="PDB output")
-    parser.add_argument('-c', '--chunk', help='Chunked protein')
+    #parser.add_argument('-c', '--chunk', help='Chunked protein')
     parser.add_argument('-i', '--interaction', help='Protein atom to use for ligand interaction.')
     #parser.add_argument('-s', '--seed', type=int, help='Random seed.')
     #parser.add_argument('--gpu-id', type=int, help='GPU ID (optional); if not specified, runs on CPU only.')
     #parser.add_argument('--force-constant-eq', type=float, default=1.0, help='Force constant for equilibration.')
-    parser.add_argument('--queue-template', type=str, default = None, help='Write out a queue template from the following: [Slurm | SGE]')
+    parser.add_argument('-q','--queue-template', type=str, default = None, help='Write out a queue template from the following: [Slurm | SGE]')
     parser.add_argument('--HMR', type=bool, default=True, help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
-
+    parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
+    parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
     args = parser.parse_args()
+    
     # Parameterize the ligand
     
-    prepare_system(args.ligand, args.chunk, forcefield_str="amber99sb.xml", hmr=args.HMR)
+    prepare_system(args.ligand, args.protein, forcefield_str="amber99sb.xml", hmr=args.HMR)
     # Now find the interaction and save to a file
     results = find_interaction(args.interaction, args.protein)
     print(results) # what happens to these?
@@ -42,7 +44,7 @@ def main():
     write_all_inputs(p[0], p[1:], hmr = args.HMR)
 
     if args.queue_template:
-        write_queue_template(args.queue_template, hmr = args.HMR)
+        write_queue_template(args.queue_template, hmr = args.HMR, replicas=replicas, wqb_threshold=wqb_threshold)
     
 
 
