@@ -108,7 +108,7 @@ DISANG=dist_md.rst
     """
     if not os.path.isfile('dist_md.rst'):
         prot_idx, lig_idx, pairmeandistance_i = interaction
-        dist_str = f"""#Prevent dissociation by penalizing interaction break (>3.0A)\n&rst iat={prot_idx+1},{lig_idx+1}, r2=2.00, r3=3.00, r4=4.00, rk2=1.0, rk3=10.0, /"""
+        dist_str = f"""#Prevent dissociation by penalizing interaction break (>3.0A)\n&rst iat={prot_idx+1},{lig_idx+2}, r2=2.00, r3=3.00, r4=4.00, rk2=1.0, rk3=10.0, /"""
         write_string_to_file('dist_md.rst', dist_str)
     write_string_to_file('md.in', md_str)
 
@@ -531,3 +531,4 @@ if __name__=='__main__':
     template = sys.argv[1]
     hmr = sys.argv[2]
     write_queue_template(template, hmr=hmr)
+
