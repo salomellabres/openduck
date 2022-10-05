@@ -5,7 +5,7 @@ import shutil
 try:
     from duck.steps.parametrize import prepare_system
     from duck.utils.cal_ints import find_interaction
-    from duck.utils.amber_inputs import write_all_inputs, write_queue_template, write_string_to_file
+    from duck.utils.amber_inputs import write_all_inputs, write_queue_template, write_string_to_file, write_getWqbValues
 except ModuleNotFoundError:
     print('Dependencies missing; check openmm, pdbfixer, and yank are installed from Omnia.')
 
@@ -65,6 +65,7 @@ def main():
         #do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=p[1:])
         
         write_all_inputs(p[0], p[1:], hmr = args.HMR)
+        write_getWqbValues()
         os.chdir(f'..')
 
     if args.queue_template:
