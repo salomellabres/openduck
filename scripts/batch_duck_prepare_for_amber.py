@@ -35,7 +35,6 @@ def main():
     # Iterate_ligands
     for j, ligand_string in enumerate(ligand_string_generator(args.ligands)):
         i=j+1
-        continue
         #Create the ligand folder
         if os.path.isdir(f'LIG_target_{i}'):
             print(f'WARNING: LIG_target_{i} already exist and it will be overwritten.')
