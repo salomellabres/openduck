@@ -6,8 +6,9 @@ def write_string_to_file(file,string):
 
 def write_min_and_equil_inputs(chunk_residues, interaction, hmr=False):
     # defining strings to write
+    iterations='500000'
     min_str = f"""&cntrl
-imin=1, maxcyc=10000,
+imin=1, maxcyc=2000,
 ntpr=100,
 ntr=1,
 restraintmask=':{chunk_residues} & !@H=',
@@ -22,7 +23,6 @@ ntp=0, ntc=2,
 ntb=1, ntf=2, cut=9.0,
 ntt=3, temp0=150, tempi=100, ig=-1, gamma_ln=4.0,
 nstlim= 50000, dt=0.002,
-iwrap=1,
 ntr=1,
 restraintmask=':{chunk_residues} & !@H=',
 restraint_wt=1.0,
@@ -39,7 +39,6 @@ ntp=0, ntc=2,
 ntb=1, ntf=2, cut=9.0, 
 ntt=3, temp0={temp}, ig=-1,  gamma_ln=4.0,
 nstlim= 50000, dt=0.002,
-iwrap=1,
 ntr=1,
 restraintmask=':{chunk_residues} & !@H=', 
 restraint_wt=1.0,
@@ -51,6 +50,7 @@ DISANG=dist_md.rst
     time_step = '0.002'
     if hmr:
         time_step = '0.004'
+        iterations= '250000'
     eq_str = f"""&cntrl
 imin=0,
 ntx=5, irest=1,
@@ -59,7 +59,7 @@ ntxo=1, ntpr=2000, ntwx=0, ntwv=0, ntwe=0, ntwr=0, ioutfm=1,
 ntp=1, ntc=2, taup=2.0, 
 ntb=2, ntf=2, cut=9.0,
 ntt=3, temp0=300.0, ig=-1,  gamma_ln=4.0,
-nstlim=500000, dt={time_step},
+nstlim={iterations}, dt={time_step},
 ntr=1,
 restraintmask=':{chunk_residues} & !@H=', 
 restraint_wt=1.0,
@@ -85,10 +85,11 @@ DISANG=dist_md.rst
 
 def write_md_inputs(chunk_residues, interaction, hmr):
     time_step = '0.002'
-    if hmr:
-        time_step = '0.004'
+    iterations = '500000'
     top = '{top}'
     if hmr:
+        time_step = '0.004'
+        iterations= '250000'
         top = 'HMR_'+top
     md_str =f"""&cntrl
 ntx=5, irest=1,
@@ -97,7 +98,7 @@ ntxo=1, ntpr=2000, ntwx=0, ntwv=0, ntwe=0, ntwr=0, ioutfm=1,
 ntc=2, ntf=2,
 ntb=1, cut=9.0,
 ntt=3, temp0=300.0, gamma_ln=4.0, ig=-1,
-nstlim=250000, dt={time_step},
+nstlim={iterations}, dt={time_step},
 ntr=1,
 restraintmask=':{chunk_residues} & !@H=', 
 restraint_wt=1.0,
@@ -114,20 +115,24 @@ DISANG=dist_md.rst
 
 def write_smd_inputs(chunk_residues, interaction, hmr):
     time_step = '0.002'
+    iterations = '500000'
+    savefreq = '50'
     if hmr:
         time_step = '0.004'
+        iterations = '250000'
+        savefreq = '25'
     smd_str=f"""&cntrl
 ntx = 5, irest=1,
 iwrap=0,
 ntb=1,
 ntt=3, temp0=300.0, gamma_ln=4.0,
-nstlim=250000, dt={time_step},
+nstlim={iterations}, dt={time_step},
 ntc=2, ntf=2, cut=9.0,
 ntxo=1, ntpr=2000, ntwx=0, ntwe=1000, ntwr=0, ioutfm=1,
 jar=1,
 ntr=1, restraintmask=':{chunk_residues} & !@H=', restraint_wt=1.0,
 /
-&wt type='DUMPFREQ', istep1=50 /
+&wt type='DUMPFREQ', istep1={savefreq} /
 &wt type='END'   /
 DISANG=../dist_duck.rst
 DUMPAVE=duck.dat
@@ -216,6 +221,7 @@ def get_Wqb_value_AMBER(file_duck_dat):
     #alayze each segment to see if minimum in the segment is the local minimum
     #local minimum is the point with the lowest value of 200 neighbouring points
     #first local minumum is miminum used later to duck analysis
+    Wqb_min_index = False
     for segment in range(num_segments):
         #detecting minium inthe segment
         sub_data = data[segment * 200 : (segment + 1) * 200]
@@ -238,7 +244,9 @@ def get_Wqb_value_AMBER(file_duck_dat):
             if index_local2 == 100:
                 Wqb_min_index = index_global
                 break
-    
+    if not Wqb_min_index:
+        print('The minima could not be found, setting the Wqb to 0')
+        exit 0
     Wqb_min = Work[Wqb_min_index]
     sub_max_data = data[Wqb_min_index:]
     sub_max_Work = sub_max_data[:,3]
