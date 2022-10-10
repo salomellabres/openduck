@@ -246,7 +246,7 @@ def get_Wqb_value_AMBER(file_duck_dat):
                 break
     if not Wqb_min_index:
         print('The minima could not be found, setting the Wqb to 0')
-        exit 0
+        exit(0)
     Wqb_min = Work[Wqb_min_index]
     sub_max_data = data[Wqb_min_index:]
     sub_max_Work = sub_max_data[:,3]
