@@ -61,5 +61,5 @@ if you have multiple ligands and want to prepare them in batch. There is also th
 
 ```{bash}
 conda activate openduck_latest
-python ./scripts/batch_duck_prepare_for_amber.py -p receptor.pdb -l ligands.sdf -i interaction_string(e.g. A_ASN_140_ND2) -q Slurm|SGE --HMR True -r nreplicas -w wqb_threshold
+python ./scripts/batch_duck_prepare_for_amber.py -p receptor.pdb -l ligands.sdf -i interaction_string(e.g. A_ASN_140_ND2) -q Slurm|SGE --HMR -r nreplicas -w wqb_threshold
 ```

@@ -27,7 +27,7 @@ def main():
     parser.add_argument('-l', '--ligands', help='Ligands in sdf format')
     parser.add_argument('-i', '--interaction', help='Protein atom to use for ligand interaction.')
     parser.add_argument('-q', '--queue-template', type=str, default = None, help='Write out a queue template from the following: [Slurm | SGE]')
-    parser.add_argument('--HMR', type=bool, default=True, help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
+    parser.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
     args = parser.parse_args()
@@ -48,7 +48,7 @@ def main():
         if os.path.isfile('../waters_to_retain.pdb'):
             shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
 
-        # Parameterize the ligand    
+        # Parameterize the ligand
         prepare_system(f'lig_{i}.mol', args.protein, forcefield_str="amber99sb.xml", hmr=args.HMR)
         
         # Now find the interaction and save to a file

@@ -83,7 +83,7 @@ DISANG=dist_md.rst
     write_string_to_file('3_eq.in', eq_str)
     write_string_to_file('dist_md.rst', dist_str)
 
-def write_md_inputs(chunk_residues, interaction, hmr):
+def write_md_inputs(chunk_residues, interaction, hmr=False):
     time_step = '0.002'
     iterations = '500000'
     top = '{top}'
@@ -113,7 +113,7 @@ DISANG=dist_md.rst
         write_string_to_file('dist_md.rst', dist_str)
     write_string_to_file('md.in', md_str)
 
-def write_smd_inputs(chunk_residues, interaction, hmr):
+def write_smd_inputs(chunk_residues, interaction, hmr=False):
     time_step = '0.002'
     iterations = '500000'
     savefreq = '50'
