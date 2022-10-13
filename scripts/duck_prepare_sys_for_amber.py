@@ -12,7 +12,7 @@ except ModuleNotFoundError:
 def main():
     parser = argparse.ArgumentParser(description='Prepare system for dynamic undocking')
     parser.add_argument('-p', '--protein', help='chunk protein in PDB format')
-    parser.add_argument('-l', '--ligands', help='Ligands in sdf format')
+    parser.add_argument('-l', '--ligand', help='Ligands in sdf format')
     parser.add_argument('-i', '--interaction', help='Protein atom to use for ligand interaction.')
     parser.add_argument('-q', '--queue-template', type=str, default = None, help='Write out a queue template from the following: [Slurm | SGE]')
     parser.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
