@@ -2,6 +2,8 @@ import argparse
 import pickle
 import os
 import shutil
+import multiprocessing as mp
+
 try:
     from duck.steps.parametrize import prepare_system
     from duck.utils.cal_ints import find_interaction
@@ -20,6 +22,50 @@ def ligand_string_generator(file):
                 mol = []
                 yield '\n'.join(new_mol)
 
+def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR ):
+    # Parameterize the ligand
+    prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=HMR)
+    
+    # Now find the interaction and save to a file
+    results = find_interaction(interaction, protein_file)
+    print(results) # what happens to these?
+    with open('complex_system.pickle', 'rb') as f:
+        p = pickle.load(f) + results
+    with open('complex_system.pickle', 'wb') as f:
+        pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
+    #p = (parmed_structure, prot_index, ligand_index, pairmeandistance)
+    p[0].save('system_complex.inpcrd', overwrite=True)
+
+    
+    #do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=p[1:])
+    
+    write_all_inputs(p[0], p[1:], hmr = HMR)
+    write_getWqbValues()
+
+def prepare_ligand_in_folder(ligand_string, lig_indx, protein, interaction, HMR):
+    #Create the ligand folder
+    if os.path.isdir(f'LIG_target_{lig_indx}'):
+        print(f'WARNING: LIG_target_{lig_indx} already exist and it will be overwritten.')
+        shutil.rmtree(f'./LIG_target_{lig_indx}', ignore_errors=True)
+    os.mkdir(f'LIG_target_{lig_indx}')
+    os.chdir(f'LIG_target_{lig_indx}')
+
+    # Copying files to ligand foldef; ligand and prot
+    write_string_to_file(string=ligand_string, file=f'lig_{lig_indx}.mol')
+    shutil.copyfile(f'../{protein}', f'./{protein}', follow_symlinks=True)
+    if os.path.isfile('../waters_to_retain.pdb'):
+        shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
+
+    prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, interaction, HMR)
+
+    os.chdir(f'..')
+
+#global?
+result_list = []
+def log_result(result):
+    # This is called whenever foo_pool(i) returns a result.
+    # result_list is modified only by the main process, not the pool workers.
+    result_list.append(result)
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare system for dynamic undocking')
@@ -30,46 +76,21 @@ def main():
     parser.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
+    parser.add_argument('-n', '--n-threads', type=int, default=None, help='Ammount of CPU to use, default will be all available CPU')
     args = parser.parse_args()
 
+    if not args.n_threads:
+        pool = mp.Pool(mp.cpu_count())
+        print(f'Number of Threads to use not specified, using {mp.cpu_count()}')
+    else:
+        pool = mp.Pool(args.n_threads)
+
     # Iterate_ligands
-    for j, ligand_string in enumerate(ligand_string_generator(args.ligands)):
-        i=j+1
-        #Create the ligand folder
-        if os.path.isdir(f'LIG_target_{i}'):
-            print(f'WARNING: LIG_target_{i} already exist and it will be overwritten.')
-            shutil.rmtree(f'./LIG_target_{i}', ignore_errors=True)
-        os.mkdir(f'LIG_target_{i}')
-        os.chdir(f'LIG_target_{i}')
-
-        # Copying files to ligand foldef; ligand and prot
-        write_string_to_file(string=ligand_string, file=f'lig_{i}.mol')
-        shutil.copyfile(f'../{args.protein}', f'./{args.protein}', follow_symlinks=True)
-        if os.path.isfile('../waters_to_retain.pdb'):
-            shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
-
-        # Parameterize the ligand
-        prepare_system(f'lig_{i}.mol', args.protein, forcefield_str="amber99sb.xml", hmr=args.HMR)
-        
-        # Now find the interaction and save to a file
-        results = find_interaction(args.interaction, args.protein)
-        print(results) # what happens to these?
-        with open('complex_system.pickle', 'rb') as f:
-            p = pickle.load(f) + results
-        with open('complex_system.pickle', 'wb') as f:
-            pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
-        #p = (parmed_structure, prot_index, ligand_index, pairmeandistance)
-        p[0].save('system_complex.inpcrd', overwrite=True)
-
-        
-        #do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=p[1:])
-        
-        write_all_inputs(p[0], p[1:], hmr = args.HMR)
-        write_getWqbValues()
-        os.chdir(f'..')
-
+    r = [pool.apply_async(prepare_ligand_in_folder, args=(ligand_string, j+1, args.protein, args.interaction, args.HMR), callback=log_result) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
+    pool.close()
+    pool.join()
     if args.queue_template:
-        write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold, array_limit=i)
+        write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold, array_limit=len(r))
     
 
 if __name__ == "__main__":
