@@ -3,7 +3,7 @@ import pickle
 import os
 import shutil
 import multiprocessing as mp
-
+from contextlib import redirect_stdout,redirect_stderr
 try:
     from duck.steps.parametrize import prepare_system
     from duck.utils.cal_ints import find_interaction
@@ -42,23 +42,29 @@ def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR ):
     write_all_inputs(p[0], p[1:], hmr = HMR)
     write_getWqbValues()
 
-def prepare_ligand_in_folder(ligand_string, lig_indx, protein, interaction, HMR):
+def prepare_ligand_in_folder(ligand_string, lig_indx, protein, interaction, HMR, base_dir):
+
+    os.chdir(base_dir)
+
     #Create the ligand folder
     if os.path.isdir(f'LIG_target_{lig_indx}'):
         print(f'WARNING: LIG_target_{lig_indx} already exist and it will be overwritten.')
         shutil.rmtree(f'./LIG_target_{lig_indx}', ignore_errors=True)
     os.mkdir(f'LIG_target_{lig_indx}')
     os.chdir(f'LIG_target_{lig_indx}')
+    print(f'Working on LIG_target_{lig_indx}')
+    with open('preparation.out', 'w') as o:
+        with redirect_stdout(o):
+            # Copying files to ligand foldef; ligand and prot
+            write_string_to_file(string=ligand_string, file=f'lig_{lig_indx}.mol')
+            shutil.copyfile(f'../{protein}', f'./{protein}', follow_symlinks=True)
+            if os.path.isfile('../waters_to_retain.pdb'):
+                shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
 
-    # Copying files to ligand foldef; ligand and prot
-    write_string_to_file(string=ligand_string, file=f'lig_{lig_indx}.mol')
-    shutil.copyfile(f'../{protein}', f'./{protein}', follow_symlinks=True)
-    if os.path.isfile('../waters_to_retain.pdb'):
-        shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
+            prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, interaction, HMR)
 
-    prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, interaction, HMR)
-
-    os.chdir(f'..')
+    #os.chdir(f'..')
+    return(f'Lig_target_{lig_indx} prepared correctly')
 
 #global?
 result_list = []
@@ -84,11 +90,16 @@ def main():
         print(f'Number of Threads to use not specified, using {mp.cpu_count()}')
     else:
         pool = mp.Pool(args.n_threads)
-
+    base_dir = os.getcwd()
     # Iterate_ligands
-    r = [pool.apply_async(prepare_ligand_in_folder, args=(ligand_string, j+1, args.protein, args.interaction, args.HMR), callback=log_result) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
+    r = [pool.apply_async(prepare_ligand_in_folder, args=(ligand_string, j+1, args.protein, args.interaction, args.HMR, base_dir), callback=log_result) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
     pool.close()
     pool.join()
+
+    #handle exceptions and results to see if everything went well
+    for result in r:
+        value = result.get()
+        print(value)
     if args.queue_template:
         write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold, array_limit=len(r))
     

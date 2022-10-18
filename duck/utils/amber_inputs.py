@@ -6,7 +6,6 @@ def write_string_to_file(file,string):
 
 def write_min_and_equil_inputs(chunk_residues, interaction, hmr=False):
     # defining strings to write
-    iterations='500000'
     min_str = f"""&cntrl
 imin=1, maxcyc=2000,
 ntpr=100,
@@ -48,6 +47,7 @@ nmropt=1,
 DISANG=dist_md.rst
 """
     time_step = '0.002'
+    iterations='500000'
     if hmr:
         time_step = '0.004'
         iterations= '250000'
@@ -115,11 +115,11 @@ DISANG=dist_md.rst
 
 def write_smd_inputs(chunk_residues, interaction, hmr=False):
     time_step = '0.002'
-    iterations = '500000'
+    iterations = '250000'
     savefreq = '50'
     if hmr:
         time_step = '0.004'
-        iterations = '250000'
+        iterations = '125000'
         savefreq = '25'
     smd_str=f"""&cntrl
 ntx = 5, irest=1,
@@ -144,13 +144,13 @@ ntx = 5, irest=1,
 iwrap=0,
 ntb=1,
 ntt=3, temp0=325.0, gamma_ln=4.0,
-nstlim=250000, dt={time_step},
+nstlim=2, dt={time_step},
 ntc=2, ntf=2, cut=9.0,
 ntxo=1, ntpr=2000, ntwx=0, ntwe=1000, ntwr=0, ioutfm=1,
 jar=1,
 ntr=1, restraintmask=':{chunk_residues} & !@H=', restraint_wt=1.0,
 /
-&wt type='DUMPFREQ', istep1=50 /
+&wt type='DUMPFREQ', istep1={savefreq} /
 &wt type='END'   /
 DISANG=../dist_duck.rst
 DUMPAVE=duck.dat
