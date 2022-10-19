@@ -18,11 +18,13 @@ def main():
     parser.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
+    parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Ŝmall Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 ]')
+
     args = parser.parse_args()
     
     # Parameterize the ligand
     
-    prepare_system(args.ligand, args.protein, forcefield_str="amber99sb.xml", hmr=args.HMR)
+    prepare_system(args.ligand, args.protein, forcefield_str="amber99sb.xml", hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield)
     # Now find the interaction and save to a file
     results = find_interaction(args.interaction, args.protein)
     print(results) # what happens to these?
