@@ -84,7 +84,7 @@ def main():
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
     parser.add_argument('-n', '--n-threads', type=int, default=None, help='Ammount of CPU to use, default will be all available CPU')
-    parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Ŝmall Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 ]')
+    parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Ŝmall Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 | ESPALOMA]')
     args = parser.parse_args()
 
     if not args.n_threads:

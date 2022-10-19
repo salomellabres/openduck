@@ -6,7 +6,7 @@ from simtk import openmm
 from pdbfixer import PDBFixer  # for solvating
 import sys
 import pickle
-from duck.utils.gen_system import generateSMIRNOFFStructureRDK, generateGAFFStructureRDK
+from duck.utils.gen_system import generateSMIRNOFFStructureRDK, generateGAFFStructureRDK, generateEspalomaFFStructureRDK
 from pathlib import Path
 
 
@@ -24,13 +24,13 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
 
 def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=False, small_molecule_ff = 'SMIRNOFF'):
 
-    FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK}
+    FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK, 'ESPALOMA': generateEspalomaFFStructureRDK}
 
     print("Preparing ligand")
-    if small_molecule_ff not in FF_generators:
+    if small_molecule_ff.upper() not in FF_generators:
         print(f'{small_molecule_ff} is not in the accepted small molecule forcefields. Defaulting it to SMIRNOFF')
         small_molecule_ff = 'SMIRNOFF'
-    ligand_pmd = FF_generators[small_molecule_ff](ligand_file)
+    ligand_pmd = FF_generators[small_molecule_ff.upper()](ligand_file)
     print("Fixing protein")
     protein = parmed.load_file(protein_file)
     protein.write_pdb("fixed.pdb")

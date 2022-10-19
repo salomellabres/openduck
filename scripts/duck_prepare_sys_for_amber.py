@@ -18,7 +18,7 @@ def main():
     parser.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
-    parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Ŝmall Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 ]')
+    parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Ŝmall Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 | ESPALOMA]')
 
     args = parser.parse_args()
     
