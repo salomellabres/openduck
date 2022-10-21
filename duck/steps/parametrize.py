@@ -24,7 +24,9 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
 
 def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=False, small_molecule_ff = 'SMIRNOFF'):
 
-    FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK, 'ESPALOMA': generateEspalomaFFStructureRDK}
+    #Do not put ESPALOMA yet, as it is not on the conda release of openmmforcefields yet, The function is already prepared
+    #FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK, 'ESPALOMA': generateEspalomaFFStructureRDK}
+    FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK}
 
     print("Preparing ligand")
     if small_molecule_ff.upper() not in FF_generators:

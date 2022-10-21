@@ -18,13 +18,16 @@ def main():
     parser.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
-    parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Ŝmall Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 | ESPALOMA]')
+    parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Small Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 | ESPALOMA]')
+    parser.add_argument('-c', '--chunk', default = None, help='Chunked protein')
 
     args = parser.parse_args()
     
+    #If not chunk given, use protein as chunk (Only relevant for purposes of identifying the interaction)
+    if not args.chunk: args.chunk = args.protein
+
     # Parameterize the ligand
-    
-    prepare_system(args.ligand, args.protein, forcefield_str="amber99sb.xml", hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield)
+    prepare_system(args.ligand, args.chunk, forcefield_str="amber99sb.xml", hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield)
     # Now find the interaction and save to a file
     results = find_interaction(args.interaction, args.protein)
     print(results) # what happens to these?
@@ -34,7 +37,6 @@ def main():
         pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
     #p = (parmed_structure, prot_index, ligand_index, pairmeandistance)
     p[0].save('system_complex.inpcrd', overwrite=True)
-
     
     #do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=p[1:])
     
