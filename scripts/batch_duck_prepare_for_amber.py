@@ -1,4 +1,5 @@
 import argparse
+from cgitb import small
 import pickle
 import os
 import shutil
@@ -22,9 +23,9 @@ def ligand_string_generator(file):
                 mol = []
                 yield '\n'.join(new_mol)
 
-def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR ):
+def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF'):
     # Parameterize the ligand
-    prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=HMR)
+    prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=HMR, small_molecule_ff=small_molecule_forcefield)
     
     # Now find the interaction and save to a file
     results = find_interaction(interaction, protein_file)
@@ -42,7 +43,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR ):
     write_all_inputs(p[0], p[1:], hmr = HMR)
     write_getWqbValues()
 
-def prepare_ligand_in_folder(ligand_string, lig_indx, protein, interaction, HMR, base_dir):
+def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF'):
 
     os.chdir(base_dir)
 
@@ -61,7 +62,7 @@ def prepare_ligand_in_folder(ligand_string, lig_indx, protein, interaction, HMR,
             if os.path.isfile('../waters_to_retain.pdb'):
                 shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
 
-            prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, interaction, HMR)
+            prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, interaction, HMR, small_molecule_forcefield=small_molecule_forcefield)
 
     #os.chdir(f'..')
     return(f'Lig_target_{lig_indx} prepared correctly')
@@ -83,25 +84,36 @@ def main():
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
     parser.add_argument('-n', '--n-threads', type=int, default=None, help='Ammount of CPU to use, default will be all available CPU')
+    parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Small Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 | ESPALOMA]')
+    parser.add_argument('-c', '--chunk', default = None, help='Chunked protein')
     args = parser.parse_args()
 
+    # Initializing pool of cpus
     if not args.n_threads:
         pool = mp.Pool(mp.cpu_count())
         print(f'Number of Threads to use not specified, using {mp.cpu_count()}')
     else:
         pool = mp.Pool(args.n_threads)
+
+    #If not chunk given, use protein as chunk (Only relevant for purposes of identifying the interaction)
+    if not args.chunk: args.chunk = args.protein
+
+    #Where am I?
     base_dir = os.getcwd()
+    
     # Iterate_ligands
-    r = [pool.apply_async(prepare_ligand_in_folder, args=(ligand_string, j+1, args.protein, args.interaction, args.HMR, base_dir), callback=log_result) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
+    r = [pool.apply_async(prepare_ligand_in_folder, args=(ligand_string, j+1, args.protein, args.chunk, args.interaction, args.HMR, base_dir, args.small_molecule_forcefield), callback=log_result) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
     pool.close()
     pool.join()
+
+    # write queue array
+    if args.queue_template:
+        write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold, array_limit=len(r))
 
     #handle exceptions and results to see if everything went well
     for result in r:
         value = result.get()
         print(value)
-    if args.queue_template:
-        write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold, array_limit=len(r))
     
 
 if __name__ == "__main__":
