@@ -20,6 +20,7 @@ def main():
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
     parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Small Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 | ESPALOMA]')
     parser.add_argument('-c', '--chunk', default = None, help='Chunked protein')
+    parser.add_argument('-s', '--water-model', default='tip3p', type=str.lower, help='Water model to parametrize the solvent with. Chose from the following: [TIP3P | TIP4PFB | TIP4PEW | SPCE | TIP5P] ')
 
     args = parser.parse_args()
     
@@ -27,7 +28,7 @@ def main():
     if not args.chunk: args.chunk = args.protein
 
     # Parameterize the ligand
-    prepare_system(args.ligand, args.chunk, forcefield_str="amber99sb.xml", hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield)
+    prepare_system(args.ligand, args.chunk, forcefield_str="amber99sb.xml", water_ff_str = f'{args.water_model}.xml', hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield)
     # Now find the interaction and save to a file
     results = find_interaction(args.interaction, args.protein)
     print(results) # what happens to these?
