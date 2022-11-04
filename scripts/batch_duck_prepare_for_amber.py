@@ -23,9 +23,9 @@ def ligand_string_generator(file):
                 mol = []
                 yield '\n'.join(new_mol)
 
-def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF'):
+def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml'):
     # Parameterize the ligand
-    prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=HMR, small_molecule_ff=small_molecule_forcefield)
+    prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str)
     
     # Now find the interaction and save to a file
     results = find_interaction(interaction, protein_file)
