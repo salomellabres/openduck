@@ -73,6 +73,9 @@ def log_result(result):
     # This is called whenever foo_pool(i) returns a result.
     # result_list is modified only by the main process, not the pool workers.
     result_list.append(result)
+# handle raised errors
+def handle_error(error):
+	print(error, flush=True)
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare system for dynamic undocking')
@@ -104,7 +107,12 @@ def main():
     base_dir = os.getcwd()
     
     # Iterate_ligands
-    r = [pool.apply_async(prepare_ligand_in_folder, args=(ligand_string, j+1, args.protein, args.chunk, args.interaction, args.HMR, base_dir, args.small_molecule_forcefield, args.water_model), callback=log_result) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
+    r = [pool.apply_async(prepare_ligand_in_folder,
+                          args=(ligand_string, j+1, args.protein, args.chunk,
+                                args.interaction, args.HMR, base_dir,
+                                args.small_molecule_forcefield, args.water_model),
+                          callback=log_result,
+                          error_callback=handle_error) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
     pool.close()
     pool.join()
 
