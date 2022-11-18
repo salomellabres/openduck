@@ -70,15 +70,19 @@ def get_expavg_FD_df(work_df, T=300, calculate_FD=True):
             else:
                 ai = float(log(30*Wdis*B))/float(log(15*(exp(2*B*Wdis)-1)))
                 av=float(log(100*Wdis*B))/float(log(50*(exp(2*B*Wdis)-1)))
-            Bj = Wdis/N**ai
-            v = variance/N**av
-            MSE = Bj**2+v
-            sqrtMSE = MSE**0.5
+            try:
+                Bj = Wdis/N**ai
+                v = variance/N**av
+                MSE = Bj**2+v
+                sqrtMSE = MSE**0.5
+                # Proper fluctuation dissipation (FD) using Kullback-leibler divergence
+                FD = average-Wdis
+                MSE_FD = 2*Wdis/(B*N)+(2*Wdis**2)/(N-1)
+                sqrtMSE_FD = MSE_FD**0.5
+            except:
+                print(ai, av)
 
-            # Proper fluctuation dissipation (FD) using Kullback-leibler divergence
-            FD = average-Wdis
-            MSE_FD = 2*Wdis/(B*N)+(2*Wdis**2)/(N-1)
-            sqrtMSE_FD = MSE_FD**0.5
+
 
         # write out on the final_df
         final_df.loc[rc] = [expavg, sqrtMSE, MSE, Bj,v, av, ai, Wdis, average, variance, FD, sqrtMSE_FD]
