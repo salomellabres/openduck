@@ -14,3 +14,4 @@ dependencies:
   - openmm=7.5
   - openmmforcefields=0.7.4
   - ambertools=22.0
+  - seaborn
