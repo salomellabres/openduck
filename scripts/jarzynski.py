@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from math import log, exp
 import os
-
+import pickle
 
 def read_DUckdat(temp=None):
 	# read SMD reports from amber (4th line is the work)
@@ -164,10 +164,10 @@ def average_dataframes(dataf1, dataf2):
 			new_df.at[i,col] = (v300+v325)/2
 	return new_df
 
-def get_real_jarzynski_from_bootstrapping(sample_dfs, save=None):
+def get_real_jarzynski_from_bootstrapping(sample_dfs, save=None, splitting_point=2500):
 	# real calculated wqb should come from the maximums and not from the end points
 	# as such, the reported values come from the following
-	max_values = [max(list(sample_df['expavg'])[list(sample_df['expavg'])[:2500].index(min(list(list(sample_df['expavg'])[:2500]))):])
+	max_values = [max(list(sample_df['expavg'])[list(sample_df['expavg'])[:splitting_point].index(min(list(list(sample_df['expavg'])[:splitting_point]))):])
               for sample_df in sample_dfs]
 	avg = np.mean(max_values)
 	sd = np.std(max_values)
@@ -175,11 +175,17 @@ def get_real_jarzynski_from_bootstrapping(sample_dfs, save=None):
 	if save:
 		with open(save, 'w') as f:
 			f.write('\t'.join([str(x) for x in [avg,sd,sem_v]]))
-	return avg,sd,sem_v
-
+	return avg,sd,sem_v, max_values
+def save_pickle(file, object):
+    with open(file, 'wb') as fh:
+        pickle.dump(object, fh)
+def read_pickle(file):
+    with open(file, 'r') as fh:
+        obj = pickle.load(fh)
+    return obj
 if __name__=='__main__':  
     # usage: launch script in the LIG_target folder to obtain jarzynski report
-    #test_folder = '/home/aserrano/Documents/openduck_validation/Iridium/1a28/ARG766_NH2/GAFF2/'
+    #test_folder = '/home/aserrano/Documents/openduck_validation/Iridium/1ml1/GLY173_N/SMIRNOFF'
     #os.chdir(test_folder)
     temperatures = [300, 325]
     norm_datas, FD_datas = [],[]
@@ -195,9 +201,10 @@ if __name__=='__main__':
     plot_expavg_FD(norm_df, FD_df)
 
     flat_bootstrapped_df, sampled_dfs = bootstrap_df(norm_datas)
+    save_pickle('resampling.pickle',(flat_bootstrapped_df, sampled_dfs))
     stats_df = get_stats_from_bootstrapping(flat_bootstrapped_df)
     max_stats = get_real_jarzynski_from_bootstrapping(sampled_dfs, save='jarz_sd_sem.tbl')
-
+    print(max_stats[-1])
 	#save data in csv
     FD_df.to_csv('fluctuation_dissipation.csv')
     stats_df.to_csv('bootstrapped_stats.csv')
