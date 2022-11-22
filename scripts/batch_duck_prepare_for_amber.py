@@ -23,9 +23,9 @@ def ligand_string_generator(file):
                 mol = []
                 yield '\n'.join(new_mol)
 
-def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF'):
+def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml'):
     # Parameterize the ligand
-    prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", hmr=HMR, small_molecule_ff=small_molecule_forcefield)
+    prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str, hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str)
     
     # Now find the interaction and save to a file
     results = find_interaction(interaction, protein_file)
@@ -43,7 +43,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, interaction, HMR,  small_mo
     write_all_inputs(p[0], p[1:], hmr = HMR)
     write_getWqbValues()
 
-def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF'):
+def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb'):
 
     os.chdir(base_dir)
 
@@ -62,7 +62,7 @@ def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interactio
             if os.path.isfile('../waters_to_retain.pdb'):
                 shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
 
-            prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, interaction, HMR, small_molecule_forcefield=small_molecule_forcefield)
+            prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR, small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}.xml', forcefield_str=f'{forcefield}.xml')
 
     #os.chdir(f'..')
     return(f'Lig_target_{lig_indx} prepared correctly')
@@ -73,6 +73,9 @@ def log_result(result):
     # This is called whenever foo_pool(i) returns a result.
     # result_list is modified only by the main process, not the pool workers.
     result_list.append(result)
+# handle raised errors
+def handle_error(error):
+	print(error, flush=True)
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare system for dynamic undocking')
@@ -86,6 +89,8 @@ def main():
     parser.add_argument('-n', '--n-threads', type=int, default=None, help='Ammount of CPU to use, default will be all available CPU')
     parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Small Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 | ESPALOMA]')
     parser.add_argument('-c', '--chunk', default = None, help='Chunked protein')
+    parser.add_argument('-s', '--water-model', default='tip3p', type=str.lower, help='Water model to parametrize the solvent with. Chose from the following: [TIP3P | TIP4PFB | TIP4PEW | SPCE | TIP5P] ')
+    parser.add_argument('-pf','--protein-forcefield', default='amber99sb', type=str.lower, help='Protein forcefield to parametrize the chunked protein. Chose form the following: [amber99sb | amber14-all]')
     args = parser.parse_args()
 
     # Initializing pool of cpus
@@ -102,7 +107,12 @@ def main():
     base_dir = os.getcwd()
     
     # Iterate_ligands
-    r = [pool.apply_async(prepare_ligand_in_folder, args=(ligand_string, j+1, args.protein, args.chunk, args.interaction, args.HMR, base_dir, args.small_molecule_forcefield), callback=log_result) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
+    r = [pool.apply_async(prepare_ligand_in_folder,
+                          args=(ligand_string, j+1, args.protein, args.chunk,
+                                args.interaction, args.HMR, base_dir,
+                                args.small_molecule_forcefield, args.water_model, args.protein_forcefield),
+                          callback=log_result,
+                          error_callback=handle_error) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
     pool.close()
     pool.join()
 
