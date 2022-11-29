@@ -22,7 +22,7 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
 
 
-def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p.xml', hmr=False, small_molecule_ff = 'SMIRNOFF'):
+def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p.xml', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1):
 
     #Do not put ESPALOMA yet, as it is not on the conda release of openmmforcefields yet, The function is already prepared
     #FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK, 'ESPALOMA': generateEspalomaFFStructureRDK}
@@ -63,13 +63,18 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
     fixer = PDBFixer("complex.pdb")
     # 0.1 in Vec3 because box_size is in angstrom and fixer uses nanometer
     # scaling factor to somehow ensure no interaction with periodic image
-    scaling_factor = 1.0
-    box_size = find_box_size("complex.pdb")
+    
+    box_scaling_factor = 1.0
+    # ionicStrength = 0.1 M
+    # box_buffer_disance = 10
+
+    # use the add factor as the buffer distance specified in tleap, og DUck protocol specified 18A
+    box_size = find_box_size("complex.pdb",add_factor=box_buffer_distance*2) 
     fixer.addSolvent(
-        scaling_factor * box_size * openmm.Vec3(0.1, 0.1, 0.1),
+        box_scaling_factor * box_size * openmm.Vec3(0.1, 0.1, 0.1),
         positiveIon="Na+",
         negativeIon="Cl-",
-        ionicStrength=0.1 * unit.molar,
+        ionicStrength=ionicStrength * unit.molar,
     )
     # fix to use app.modeller water models, its not very pretty
     for r in fixer.topology.residues():

@@ -22,6 +22,8 @@ def main():
     parser.add_argument('-c', '--chunk', default = None, help='Chunked protein')
     parser.add_argument('-s', '--water-model', default='tip3p', type=str.lower, help='Water model to parametrize the solvent with. Chose from the following: [TIP3P | TIP4PFB | TIP4PEW | SPCE | TIP5P] ')
     parser.add_argument('-pf','--protein-forcefield', default='amber99sb', type=str.lower, help='Protein forcefield to parametrize the chunked protein. Chose form the following: [amber99sb | amber14-all]')
+    parser.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
+    parser.add_argument('-b','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
 
     args = parser.parse_args()
     
@@ -29,7 +31,9 @@ def main():
     if not args.chunk: args.chunk = args.protein
 
     # Parameterize the ligand
-    prepare_system(args.ligand, args.chunk, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}.xml', hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield)
+    prepare_system(args.ligand, args.chunk, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}.xml',
+                   hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield,
+                   box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength)
     # Now find the interaction and save to a file
     results = find_interaction(args.interaction, args.protein)
     print(results) # what happens to these?

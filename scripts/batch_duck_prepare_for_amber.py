@@ -23,9 +23,11 @@ def ligand_string_generator(file):
                 mol = []
                 yield '\n'.join(new_mol)
 
-def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml'):
+def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10):
     # Parameterize the ligand
-    prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str, hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str)
+    prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str,
+                   hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str,
+                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength)
     
     # Now find the interaction and save to a file
     results = find_interaction(interaction, protein_file)
@@ -43,7 +45,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     write_all_inputs(p[0], p[1:], hmr = HMR)
     write_getWqbValues()
 
-def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb'):
+def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10):
 
     os.chdir(base_dir)
 
@@ -62,7 +64,9 @@ def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interactio
             if os.path.isfile('../waters_to_retain.pdb'):
                 shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
 
-            prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR, small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}.xml', forcefield_str=f'{forcefield}.xml')
+            prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
+                                  small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}.xml',
+                                  forcefield_str=f'{forcefield}.xml', ion_strenght = ion_strength, box_buffer_distance = box_buffer_distance)
 
     #os.chdir(f'..')
     return(f'Lig_target_{lig_indx} prepared correctly')
@@ -91,6 +95,10 @@ def main():
     parser.add_argument('-c', '--chunk', default = None, help='Chunked protein')
     parser.add_argument('-s', '--water-model', default='tip3p', type=str.lower, help='Water model to parametrize the solvent with. Chose from the following: [TIP3P | TIP4PFB | TIP4PEW | SPCE | TIP5P] ')
     parser.add_argument('-pf','--protein-forcefield', default='amber99sb', type=str.lower, help='Protein forcefield to parametrize the chunked protein. Chose form the following: [amber99sb | amber14-all]')
+    parser.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
+    parser.add_argument('-b','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
+
+    
     args = parser.parse_args()
 
     # Initializing pool of cpus
@@ -110,7 +118,8 @@ def main():
     r = [pool.apply_async(prepare_ligand_in_folder,
                           args=(ligand_string, j+1, args.protein, args.chunk,
                                 args.interaction, args.HMR, base_dir,
-                                args.small_molecule_forcefield, args.water_model, args.protein_forcefield),
+                                args.small_molecule_forcefield, args.water_model, args.protein_forcefield,
+                                args.ionic_strength, args.solvent_buffer_distance),
                           callback=log_result,
                           error_callback=handle_error) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
     pool.close()
