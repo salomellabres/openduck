@@ -22,14 +22,12 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
 
 
-def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p.xml', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1):
+def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1):
 
     #Do not put ESPALOMA yet, as it is not on the conda release of openmmforcefields yet, The function is already prepared
     #FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK, 'ESPALOMA': generateEspalomaFFStructureRDK}
     FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK}
-    available_water_models = ['tip3p.xml','tip3pfb.xml','spce.xml','tip4pfb.xml','tip4pew.xml','tip5p.xml',
-                              'charmm36/spce.xml', 'charmm36/tip3p-pme-b.xml','charmm36/tip3p-pme-f.xml', 'charmm36/tip4p2005.xml','charmm36/water.xml',
-                              'amber14/spce.xml', 'amber14/pip3pfb.xml','amber14/tip3p.xml','amber14/tip4pew.xml','amber14/tip4pfb.xml']
+    available_water_models = ['tip3p', 'spce','tip4pew']
     #Sanity checks
     if small_molecule_ff.upper() not in FF_generators:
         print(f'{small_molecule_ff} is not in the accepted small molecule forcefields. Defaulting it to SMIRNOFF')
@@ -77,8 +75,9 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
         ionicStrength=ionicStrength * unit.molar,
     )
     # fix to use app.modeller water models, its not very pretty
-    for r in fixer.topology.residues():
-        if r.name == 'HOH': r.name = 'WAT'
+    #for r in fixer.topology.residues():
+    #    if r.name == 'HOH':
+    #        r.name = 'WAT'
     app.PDBFile.writeFile(
         fixer.topology, fixer.positions, open("complex_solvated.pdb", "w")
     )
@@ -91,12 +90,22 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
     ions_pmd = parmed.openmm.load_topology(ions.topology, ions_system, ions.positions)
     print("Parametrizing ions done")
     print(f"Parametrizing solvent using {water_ff_str}")
-    solvent = complex["(:WAT)"]
-    wat_forcefield = app.ForceField(water_ff_str)
-    modeller = app.Modeller(solvent.topology, solvent.positions)
-    modeller.addExtraParticles(wat_forcefield)
-    solvent_system = wat_forcefield.createSystem(modeller.topology)
-    solvent_pmd = parmed.openmm.load_topology(modeller.topology, solvent_system, modeller.positions)
+    solvent = complex["(:HOH)"]
+    num_solvent = len(solvent.residues)
+    prm_top_water_path = pkg_resources.resource_filename(
+        'duck',f'parameters/waters/{water_ff_str}.prmtop'
+    )
+    solvent_pmd = parmed.load_file(prm_top_water_path)
+    solvent_pmd *= num_solvent
+    if water_ff_str == 'tip4pew': # tip4p uses an extra atom, so we need to generate the positions for this extra atom
+        wat_forcefield = app.ForceField(f'{water_ff_str}.xml')
+        modeller = app.Modeller(solvent.topology, solvent.positions)
+        modeller.addExtraParticles(wat_forcefield)
+        solvent_pmd.positions=modeller.positions
+    else:
+        solvent_pmd.positions=solvent.positions
+    #solvent_system = wat_forcefield.createSystem(modeller.topology)
+    #solvent_pmd = parmed.openmm.load_topology(modeller.topology, solvent_system, modeller.positions)
     print("Parametrizing solvent done")
     print("merge structures")
     combined_pmd = protein_pmd + ligand_pmd + ions_pmd + solvent_pmd
@@ -123,4 +132,4 @@ if __name__ == "__main__":
         sys.exit("USAGE : python parametrize.py protein.pdb ligand.mol\n")
     ligand_file = sys.argv[2]
     protein_file = sys.argv[1]
-    system = prepare_system(ligand_file, protein_file, hmr=True, water_ff_str='tip7pfb.xml')
+    system = prepare_system(ligand_file, protein_file, hmr=True, water_ff_str='tip3p.xml')

@@ -65,7 +65,7 @@ def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interactio
                 shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
 
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
-                                  small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}.xml',
+                                  small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
                                   forcefield_str=f'{forcefield}.xml', ion_strenght = ion_strength, box_buffer_distance = box_buffer_distance)
 
     #os.chdir(f'..')
@@ -93,7 +93,7 @@ def main():
     parser.add_argument('-n', '--n-threads', type=int, default=None, help='Ammount of CPU to use, default will be all available CPU')
     parser.add_argument('-f', '--small_molecule_forcefield', type=str, default='SMIRNOFF', help='Small Molecules forcefield to employ from the following: [SMIRNOFF | GAFF2 | ESPALOMA]')
     parser.add_argument('-c', '--chunk', default = None, help='Chunked protein')
-    parser.add_argument('-s', '--water-model', default='tip3p', type=str.lower, help='Water model to parametrize the solvent with. Chose from the following: [TIP3P | TIP4PFB | TIP4PEW | SPCE | TIP5P] ')
+    parser.add_argument('-s', '--water-model', default='tip3p', type=str.lower, help='Water model to parametrize the solvent with. Chose from the following: [TIP3P | TIP4PEW | SPCE] ')
     parser.add_argument('-pf','--protein-forcefield', default='amber99sb', type=str.lower, help='Protein forcefield to parametrize the chunked protein. Chose form the following: [amber99sb | amber14-all]')
     parser.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     parser.add_argument('-b','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
