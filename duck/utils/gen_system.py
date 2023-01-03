@@ -3,11 +3,11 @@ import shutil
 from rdkit import Chem
 import parmed
 from simtk.openmm.app import PDBFile
-from openforcefield.topology import Molecule, Topology
+from openff.toolkit.topology import Molecule, Topology
 
 
 def generateSMIRNOFFStructureRDK_old(ligand_file, ff='test_forcefields/smirnoff99Frosst.offxml'):
-	from openforcefield.typing.engines.smirnoff import ForceField
+	from openff.typing.engines.smirnoff import ForceField
 	"""
 	Given an RDKit molecule, create an OpenMM System and use to
 	generate a ParmEd structure using the SMIRNOFF forcefield parameters.
