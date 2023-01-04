@@ -88,6 +88,7 @@ setup(
         "console_scripts": [
             "frag_duck=scripts.run_full_from_fragalysis:main",
             "get_wqb=scripts.get_wqb:main",
+            "duck_prepare_sys_for_amber=scripts.duck_prepare_sys_for_amber:main",
         ]
     },
 )
