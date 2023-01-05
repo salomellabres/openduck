@@ -33,6 +33,9 @@ def find_atom(res_atom=None, prot_file=None, combined_pmd=None):
         if check_same(atom, chain, res_name, res_number, atom_name):
             prot_atom = atom
             break
+    else:
+        raise ValueError("The specified interaction atom was not found in the protein file.")
+
     distance_atom_1 = [(x.idx, distance2(x, prot_atom)) for x in combined_pmd.atoms]
     distance_atom_1.sort(key=operator.itemgetter(1))
     return distance_atom_1, prot_atom
