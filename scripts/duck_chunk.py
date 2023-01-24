@@ -1,14 +1,11 @@
 import argparse
 
-try:
-    from duck.steps.chunk import (
-        chunk_with_amber,
-        do_tleap,
-        remove_prot_buffers_alt_locs,
-        find_disulfides,
-    )
-except ModuleNotFoundError:
-    print('Dependencies missing; check openmm, pdbfixer, and yank are installed from Omnia.')
+from duck.steps.chunk import (
+    chunk_with_amber,
+    do_tleap,
+    remove_prot_buffers_alt_locs,
+    find_disulfides,
+)
 
 def main():
     parser = argparse.ArgumentParser(description='Perform chunking in preparation for dynamic undocking')

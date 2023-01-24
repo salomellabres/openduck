@@ -1,12 +1,10 @@
 import argparse
 import shutil
 
-try:
-    from duck.steps.normal_md import perform_md
-    from duck.steps.steered_md import run_steered_md
-    from duck.utils.check_system import check_if_equlibrated
-except ModuleNotFoundError:
-    print('Dependencies missing; check openmm, pdbfixer, and yank are installed from Omnia.')
+from duck.steps.normal_md import perform_md
+from duck.steps.steered_md import run_steered_md
+from duck.utils.check_system import check_if_equlibrated
+
 
 def main():
     parser = argparse.ArgumentParser(description='Perform SMD runs for dynamic undocking')
