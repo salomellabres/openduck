@@ -1,1 +1,1 @@
-print('conda duck synced to repo')
+#print('conda duck synced to repo')
