@@ -1,14 +1,10 @@
 import argparse
 import pickle
 
-try:
-    from duck.steps.parametrize import prepare_system
-    from duck.utils.cal_ints import find_interaction
-    from duck.utils.amber_inputs import write_all_inputs, write_queue_template
-    from duck.steps.equlibrate import do_equlibrate
-except ModuleNotFoundError:
-    print('Dependencies missing; check openmm, pdbfixer, and yank are installed from Omnia.')
-
+from duck.steps.parametrize import prepare_system
+from duck.utils.cal_ints import find_interaction
+from duck.utils.amber_inputs import write_all_inputs, write_queue_template
+from duck.steps.equlibrate import do_equlibrate
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare system for dynamic undocking')

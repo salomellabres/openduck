@@ -191,7 +191,7 @@ def re_range(lst):
                 scan = j+1
                 break
         else:
-            result.append('{}-{}'.format(lst[scan], lst[j]+1))
+            result.append('{}-{}'.format(lst[scan], lst[n-1]))
             return ','.join(result)
 
     if n - scan == 1:
