@@ -1,0 +1,53 @@
+##### FUNCTIONS ####
+#Function adapted from 'submit_duck_smd_gpu.csh' of the DUck std pipeline
+prepare_duck_and_launch(){{
+   nustart=$1
+   nuend=$2
+   temp=$3
+   nu=$nustart
+   while (($nu <= $nuend)); do
+      if [ "$temp" == '300K' ]; then
+         dir=DUCK_${nu}
+         mkdir $dir
+         cd $dir
+         if [ "$nu" == "0" ]; then
+            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../{top} -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../{top} -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst" > cmd${nu}
+         else
+            pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../{top} -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck.in -o duck_${nu}.o -p ../{top} -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../3_eq.rst" > cmd${nu}
+         fi
+         cd ..  
+      elif [ "$temp" == '325K' ]; then
+         dir=DUCK_325K_${nu}
+         mkdir $dir
+         cd $dir
+	 if [ "$nu" == "0" ]; then
+            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../{top} -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../{top} -c ../3_eq.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst" > cmd${nu}
+         else
+            pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../{top} -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.e -ref ../3_eq.rst
+            echo "pmemd.cuda -O -i ../duck_325K.in -o duck_${nu}.o -p ../{top} -c ../md${nu}.rst -r duck_${nu}.rst -x duck_${nu}.nc -e duck_${nu}.nc -e duck_${nu}.e -e ../3_eq.rst" > cmd${nu}
+         fi 
+         cd ..
+      fi
+      nu=$((nu+1))
+   done
+
+}}
+
+# Function to check if WQB is lower than 0.1 using getWqbValues.py
+# getWqbValues.py is a script from Maciej modified.
+# We use this one instead of the R version, as R is not available in the IQTC
+
+check_WQB(){{
+   wqb_limit=$1
+   lowest_wqb=$(python getWqbValues.py)
+   echo $lowest_wqb > wqb.log
+   are_we_above_the_limit=$(echo "$lowest_wqb < $wqb_limit" | bc )
+   if [ "$are_we_above_the_limit" == "1" ]; then
+      echo "Wqb lower than ${wqb_limit}, stoping DUck run"
+      cp -r ./* $LIG_TARGET/
+      exit 
+   fi
+}}
