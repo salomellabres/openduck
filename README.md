@@ -50,7 +50,8 @@ mol_file: ligand.mol
 ##### Preparing system for amber
 
 Script to prepare the prot-chunk system using open duck, but to launch the simulations in amber
-If you want to keep structural waters, have a file with them called "waters_to_retain.pdb"
+If you want to keep structural waters, pass a file containing them using the `--waters-to-retain`
+parameter, or create a file called "waters_to_retain.pdb", which OpenDuCK checks by default.
 
 ```{bash}
 conda activate openduck_latest
