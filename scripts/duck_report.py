@@ -140,15 +140,15 @@ def get_mols_and_format(data_df, mode='min'):
         mol = Chem.MolFromPDBFile(os.path.join(row['System'], 'ligand.pdb'))
         mol.SetProp('_Name', row['System'])
         if mode == 'min':
-            mol.SetProp('Wqb', row['Wqb'] )
+            mol.SetProp('Wqb', str(row['Wqb']) )
         elif mode == 'all':
             data_cols = row.columns
             data_cols.pop(0) # pop system
             mol.SetProp('All Wqb' ,','.join([row[data] for data in data_cols]))
         elif mode == 'avg':
-            mol.SetProp('Wqb', row['Wqb'] )
-            mol.SetProp('Wqb Avg', row['Average'] )
-            mol.SetProp('Wqb sd', row['SD'] )
+            mol.SetProp('Wqb', str(row['Wqb']) )
+            mol.SetProp('Wqb Avg', str(row['Average']) )
+            mol.SetProp('Wqb sd', str(row['SD']) )
 
 
         mols.append(mol)
@@ -168,7 +168,7 @@ if __name__ =='__main__':
     wqb_info = iterate_systems(args.pattern)
     df = build_report(wqb_info, mode=args.mode)
     if args.output_format == 'csv':
-        df.to_csv(args.output)
+        df.to_csv(args.output, index=False)
     elif args.output_format == 'sdf':
         mols = get_mols_and_format(df, mode=args.mode)
         with Chem.SDWriter(args.output) as w:
