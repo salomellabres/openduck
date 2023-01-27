@@ -3,8 +3,9 @@ import pickle
 
 from duck.steps.parametrize import prepare_system
 from duck.utils.cal_ints import find_interaction
-from duck.utils.amber_inputs import write_all_inputs, write_queue_template
+from duck.utils.amber_inputs import Queue_templates, Amber_templates
 from duck.steps.equlibrate import do_equlibrate
+
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare system for dynamic undocking')
@@ -43,10 +44,12 @@ def main():
     
     #do_equlibrate(force_constant_equilibrate=1.0, gpu_id=0, keyInteraction=p[1:])
     
-    write_all_inputs(p[0], p[1:], hmr = args.HMR)
+    amber = Amber_templates(structure=p[0], interaction=p[1:],hmr=args.HMR)
+    amber.write_all_inputs()
 
     if args.queue_template:
-        write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold)
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, hmr=args.HMR)
+        queue.write_queue_file(kind=args.queue_template)
     
 
 

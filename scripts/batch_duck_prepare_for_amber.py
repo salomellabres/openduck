@@ -8,7 +8,7 @@ from contextlib import redirect_stdout,redirect_stderr
 
 from duck.steps.parametrize import prepare_system
 from duck.utils.cal_ints import find_interaction
-from duck.utils.amber_inputs import write_all_inputs, write_queue_template, write_string_to_file, write_getWqbValues
+from duck.utils.amber_inputs import Queue_templates, Amber_templates
 
 def ligand_string_generator(file):
     with open(file) as fh:
@@ -39,9 +39,8 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
 
     
     #do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=p[1:])
-    
-    write_all_inputs(p[0], p[1:], hmr = HMR)
-    write_getWqbValues()
+    amber = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR)
+    amber.write_all_inputs()
 
 def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10):
 
@@ -84,8 +83,8 @@ def main():
     parser.add_argument('-p', '--protein', help='chunk protein in PDB format')
     parser.add_argument('-l', '--ligands', help='Ligands in sdf format')
     parser.add_argument('-i', '--interaction', help='Protein atom to use for ligand interaction.')
-    parser.add_argument('-q', '--queue-template', type=str, default = None, help='Write out a queue template from the following: [Slurm | SGE]')
-    parser.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
+    parser.add_argument('-q', '--queue-template', type=str, default = None, help='Write out a queue template from the following: [Slurm | SGE | local]')
+    parser.add_argument('-H', '--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
     parser.add_argument('-n', '--n-threads', type=int, default=None, help='Ammount of CPU to use, default will be all available CPU')
@@ -94,7 +93,7 @@ def main():
     parser.add_argument('-s', '--water-model', default='tip3p', type=str.lower, help='Water model to parametrize the solvent with. Chose from the following: [TIP3P | TIP4PEW | SPCE] ')
     parser.add_argument('-pf','--protein-forcefield', default='amber99sb', type=str.lower, help='Protein forcefield to parametrize the chunked protein. Chose form the following: [amber99sb | amber14-all]')
     parser.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
-    parser.add_argument('-b','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
+    parser.add_argument('-b', '--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
 
     
     args = parser.parse_args()
@@ -125,8 +124,8 @@ def main():
 
     # write queue array
     if args.queue_template:
-        write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold, array_limit=len(r))
-
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, array_limit=len(r), hmr=args.HMR)
+        queue.write_queue_file(kind=args.queue_template)
     #handle exceptions and results to see if everything went well
     for result in r:
         value = result.get()
