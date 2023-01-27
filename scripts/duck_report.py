@@ -142,9 +142,9 @@ def get_mols_and_format(data_df, mode='min'):
         if mode == 'min':
             mol.SetProp('Wqb', str(row['Wqb']) )
         elif mode == 'all':
-            data_cols = row.columns
-            data_cols.pop(0) # pop system
-            mol.SetProp('All Wqb' ,','.join([row[data] for data in data_cols]))
+            data = list(row.values)
+            data.pop(0) # pop system
+            mol.SetProp('All Wqb' ,','.join(data))
         elif mode == 'avg':
             mol.SetProp('Wqb', str(row['Wqb']) )
             mol.SetProp('Wqb Avg', str(row['Average']) )
