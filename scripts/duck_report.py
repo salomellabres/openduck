@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 import sys
 import argparse
+from rdkit import Chem
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
-
 
 #### Script from Maciej
 def get_Wqb_value_AMBER(file_duck_dat):
@@ -130,8 +130,29 @@ def build_report(info_dict, mode='min'):
         df = pd.DataFrame({'System': list(info_dict.keys()), 'Wqb':[wqb[0] for wqb in info_dict.values()],
                             'Average': [np.mean([x[1] for x in wqb[1]]) for wqb in info_dict.values()],
                             'SD': [np.std([x[1] for x in wqb[1]]) for wqb in info_dict.values()]})
+    else:
+        raise ValueError(f'{mode} is not a valid report mode. Try with min, all or avg.')
     return df
 
+def get_mols_and_format(data_df, mode='min'):
+    mols = []
+    for i, row in data_df.iterrows():
+        mol = Chem.MolFromPDBFile(os.path.join(row['System'], 'ligand.pdb'))
+        mol.SetProp('_Name', row['System'])
+        if mode == 'min':
+            mol.SetProp('Wqb', row['Wqb'] )
+        elif mode == 'all':
+            data_cols = row.columns
+            data_cols.pop(0) # pop system
+            mol.SetProp('All Wqb' ,','.join([row[data] for data in data_cols]))
+        elif mode == 'avg':
+            mol.SetProp('Wqb', row['Wqb'] )
+            mol.SetProp('Wqb Avg', row['Average'] )
+            mol.SetProp('Wqb sd', row['SD'] )
+
+
+        mols.append(mol)
+    return mols
 if __name__ =='__main__':
     
     parser = argparse.ArgumentParser(description='Collect data from duck to report')
@@ -141,12 +162,14 @@ if __name__ =='__main__':
     parser.add_argument('-of', '--output_format', default='csv', type=str, help='Output format, [csv | sdf]. Default: sdf')
     args = parser.parse_args()
 
+    if args.output == 'stdout':
+        args.output = sys.stdout
+        
     wqb_info = iterate_systems(args.pattern)
     df = build_report(wqb_info, mode=args.mode)
     if args.output_format == 'csv':
-        if args.output == 'stdout':
-            print(df.to_string(),file=sys.stdout)
-        else:
-            df.to_csv(args.output)
+        df.to_csv(args.output)
     elif args.output_format == 'sdf':
-        pass
+        mols = get_mols_and_format(df, mode=args.mode)
+        with Chem.SDWriter(args.output) as w:
+            [w.write(mol) for mol in mols]
