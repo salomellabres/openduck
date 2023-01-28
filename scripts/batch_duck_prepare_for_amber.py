@@ -21,6 +21,10 @@ def ligand_string_generator(file):
                 mol = []
                 yield '\n'.join(new_mol)
 
+def write_string_to_file(self, file,string):
+    with open(file, 'w') as fh:
+        fh.write(string)
+
 def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb"):
     # Parameterize the ligand
     prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str,
@@ -59,7 +63,7 @@ def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interactio
             write_string_to_file(string=ligand_string, file=f'lig_{lig_indx}.mol')
             shutil.copyfile(f'../{protein}', f'./{protein}', follow_symlinks=True)
             if os.path.isfile(f'../{waters_to_retain}'):
-                shutil.copyfile(f'../{waters_to_retain', f'./{waters_to_retain}', follow_symlinks=True)
+                shutil.copyfile(f'../{waters_to_retain}', f'./{waters_to_retain}', follow_symlinks=True)
 
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
