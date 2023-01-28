@@ -1,13 +1,10 @@
 import argparse
 import pickle
 
-try:
-    from duck.steps.parametrize import prepare_system
-    from duck.utils.cal_ints import find_interaction
-    from duck.utils.amber_inputs import write_all_inputs, write_queue_template
-    from duck.steps.equlibrate import do_equlibrate
-except ModuleNotFoundError:
-    print('Dependencies missing; check openmm, pdbfixer, and yank are installed from Omnia.')
+from duck.steps.parametrize import prepare_system
+from duck.utils.cal_ints import find_interaction
+from duck.utils.amber_inputs import Queue_templates, Amber_templates
+from duck.steps.equlibrate import do_equlibrate
 
 
 def main():
@@ -25,6 +22,7 @@ def main():
     parser.add_argument('-pf','--protein-forcefield', default='amber99sb', type=str.lower, help='Protein forcefield to parametrize the chunked protein. Chose form the following: [amber99sb | amber14-all]')
     parser.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     parser.add_argument('-b','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
+    parser.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
 
     args = parser.parse_args()
     
@@ -33,7 +31,7 @@ def main():
 
     # Parameterize the ligand
     prepare_system(args.ligand, args.chunk, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
-                   hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield,
+                   hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
                    box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength)
     # Now find the interaction and save to a file
     results = find_interaction(args.interaction, args.protein)
@@ -47,10 +45,12 @@ def main():
     
     #do_equlibrate(force_constant_equilibrate=1.0, gpu_id=0, keyInteraction=p[1:])
     
-    write_all_inputs(p[0], p[1:], hmr = args.HMR)
+    amber = Amber_templates(structure=p[0], interaction=p[1:],hmr=args.HMR)
+    amber.write_all_inputs()
 
     if args.queue_template:
-        write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold)
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, hmr=args.HMR)
+        queue.write_queue_file(kind=args.queue_template)
     
 
 

@@ -74,7 +74,8 @@ setup(
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
     package_data={
-        "duck": ["parameters/*.offxml", "parameters/waters/*", "parameters/tleap/*"]
+        "duck": ["parameters/*.offxml", "parameters/waters/*", "parameters/tleap/*",
+                 "templates/amber_inputs/*", "templates/queueing_templates/*"]
     },
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
@@ -88,6 +89,8 @@ setup(
         "console_scripts": [
             "frag_duck=scripts.run_full_from_fragalysis:main",
             "get_wqb=scripts.get_wqb:main",
-        ]
+            "duck_prepare_sys_for_amber=scripts.duck_prepare_sys_for_amber:main",
+            "getWqbValues=getWqbValues:main"
+        ] # TODO: add full set of scripts when known
     },
 )

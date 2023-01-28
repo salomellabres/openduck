@@ -5,12 +5,10 @@ import os
 import shutil
 import multiprocessing as mp
 from contextlib import redirect_stdout,redirect_stderr
-try:
-    from duck.steps.parametrize import prepare_system
-    from duck.utils.cal_ints import find_interaction
-    from duck.utils.amber_inputs import write_all_inputs, write_queue_template, write_string_to_file, write_getWqbValues
-except ModuleNotFoundError:
-    print('Dependencies missing; check openmm, pdbfixer, and yank are installed from Omnia.')
+
+from duck.steps.parametrize import prepare_system
+from duck.utils.cal_ints import find_interaction
+from duck.utils.amber_inputs import Queue_templates, Amber_templates
 
 def ligand_string_generator(file):
     with open(file) as fh:
@@ -23,11 +21,15 @@ def ligand_string_generator(file):
                 mol = []
                 yield '\n'.join(new_mol)
 
-def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10):
+def write_string_to_file(self, file,string):
+    with open(file, 'w') as fh:
+        fh.write(string)
+
+def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb"):
     # Parameterize the ligand
     prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str,
                    hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str,
-                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength)
+                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength, waters_to_retain="waters_to_retain.pdb")
     
     # Now find the interaction and save to a file
     results = find_interaction(interaction, protein_file)
@@ -41,11 +43,10 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
 
     
     #do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=p[1:])
-    
-    write_all_inputs(p[0], p[1:], hmr = HMR)
-    write_getWqbValues()
+    amber = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR)
+    amber.write_all_inputs()
 
-def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10):
+def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb'):
 
     os.chdir(base_dir)
 
@@ -61,12 +62,13 @@ def prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interactio
             # Copying files to ligand foldef; ligand and prot
             write_string_to_file(string=ligand_string, file=f'lig_{lig_indx}.mol')
             shutil.copyfile(f'../{protein}', f'./{protein}', follow_symlinks=True)
-            if os.path.isfile('../waters_to_retain.pdb'):
-                shutil.copyfile(f'../waters_to_retain.pdb', f'./waters_to_retain.pdb', follow_symlinks=True)
+            if os.path.isfile(f'../{waters_to_retain}'):
+                shutil.copyfile(f'../{waters_to_retain}', f'./{waters_to_retain}', follow_symlinks=True)
 
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
-                                  forcefield_str=f'{forcefield}.xml', ion_strenght = ion_strength, box_buffer_distance = box_buffer_distance)
+                                  forcefield_str=f'{forcefield}.xml', ion_strenght = ion_strength,
+                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}")
 
     #os.chdir(f'..')
     return(f'Lig_target_{lig_indx} prepared correctly')
@@ -86,8 +88,8 @@ def main():
     parser.add_argument('-p', '--protein', help='chunk protein in PDB format')
     parser.add_argument('-l', '--ligands', help='Ligands in sdf format')
     parser.add_argument('-i', '--interaction', help='Protein atom to use for ligand interaction.')
-    parser.add_argument('-q', '--queue-template', type=str, default = None, help='Write out a queue template from the following: [Slurm | SGE]')
-    parser.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
+    parser.add_argument('-q', '--queue-template', type=str, default = None, help='Write out a queue template from the following: [Slurm | SGE | local]')
+    parser.add_argument('-H', '--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     parser.add_argument('-r', '--replicas', type=int, default=5, help='Ammount of SMD replicas to perform')
     parser.add_argument('-w', '--wqb_threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
     parser.add_argument('-n', '--n-threads', type=int, default=None, help='Ammount of CPU to use, default will be all available CPU')
@@ -97,6 +99,7 @@ def main():
     parser.add_argument('-pf','--protein-forcefield', default='amber99sb', type=str.lower, help='Protein forcefield to parametrize the chunked protein. Chose form the following: [amber99sb | amber14-all]')
     parser.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     parser.add_argument('-b','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
+    parser.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
 
     
     args = parser.parse_args()
@@ -119,7 +122,7 @@ def main():
                           args=(ligand_string, j+1, args.protein, args.chunk,
                                 args.interaction, args.HMR, base_dir,
                                 args.small_molecule_forcefield, args.water_model, args.protein_forcefield,
-                                args.ionic_strength, args.solvent_buffer_distance),
+                                args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain),
                           callback=log_result,
                           error_callback=handle_error) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
     pool.close()
@@ -127,8 +130,8 @@ def main():
 
     # write queue array
     if args.queue_template:
-        write_queue_template(args.queue_template, hmr = args.HMR, replicas=args.replicas, wqb_threshold=args.wqb_threshold, array_limit=len(r))
-
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, array_limit=len(r), hmr=args.HMR)
+        queue.write_queue_file(kind=args.queue_template)
     #handle exceptions and results to see if everything went well
     for result in r:
         value = result.get()

@@ -22,7 +22,7 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
 
 
-def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1):
+def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1, waters_to_retain="waters_to_retain.pdb"):
 
     #Do not put ESPALOMA yet, as it is not on the conda release of openmmforcefields yet, The function is already prepared
     #FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK, 'ESPALOMA': generateEspalomaFFStructureRDK}
@@ -50,9 +50,9 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
         protein.topology, protein_system, protein.positions
     )
     protein_pmd.save("protein_prepared.pdb", overwrite=True)
-    if Path("waters_to_retain.pdb").exists():
-        print(f'waters retained from {Path("waters_to_retain.pdb")}')
-        waters_retained = parmed.load_file("waters_to_retain.pdb")
+    if Path(waters_to_retain).exists():
+        print(f'waters retained from {Path(waters_to_retain)}')
+        waters_retained = parmed.load_file(waters_to_retain)
         prot_lig_pmd = protein_pmd + ligand_pmd + waters_retained
     else:
         prot_lig_pmd = protein_pmd + ligand_pmd
@@ -133,3 +133,4 @@ if __name__ == "__main__":
     ligand_file = sys.argv[2]
     protein_file = sys.argv[1]
     system = prepare_system(ligand_file, protein_file, hmr=True, water_ff_str='tip3p.xml')
+
