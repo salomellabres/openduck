@@ -1,10 +1,10 @@
+#!/usr/bin/env python
+
 import argparse
 import pickle
-
 from duck.steps.parametrize import prepare_system
 from duck.utils.cal_ints import find_interaction
 from duck.utils.amber_inputs import Queue_templates, Amber_templates
-from duck.steps.equlibrate import do_equlibrate
 
 
 def main():
@@ -40,11 +40,8 @@ def main():
         p = pickle.load(f) + results
     with open('complex_system.pickle', 'wb') as f:
         pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
-    #p = (parmed_structure, prot_index, ligand_index, pairmeandistance)
     p[0].save('system_complex.inpcrd', overwrite=True)
-    
-    #do_equlibrate(force_constant_equilibrate=1.0, gpu_id=0, keyInteraction=p[1:])
-    
+        
     amber = Amber_templates(structure=p[0], interaction=p[1:],hmr=args.HMR)
     amber.write_all_inputs()
 
