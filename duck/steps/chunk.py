@@ -243,6 +243,20 @@ def add_ter_records(input_file, output_file):
             output_f.write("TER\n")
     return [output_file]
 
+def duck_chunk(prot_file, mol_file, interaction, cutoff, output_name = 'protein_out.pdb', ignore_buffers=False):
+    orig_file = prot_file
+
+    chunk_protein_prot = f'protonated_{output_name}'
+    # Do the removal of buffer mols and alt locs
+    if not ignore_buffers:
+        prot_file = remove_prot_buffers_alt_locs(prot_file)
+    # Do the chunking and the protonation
+    # Chunk
+    chunk_with_amber(mol_file,prot_file,interaction,output_name,cutoff,orig_file)
+    # Protontate
+    disulfides = find_disulfides(output_name)
+    do_tleap(output_name, chunk_protein_prot, disulfides)
+    return chunk_protein_prot
 
 if __name__ == "__main__":
     mol_file = "MURD-x0349.mol"
