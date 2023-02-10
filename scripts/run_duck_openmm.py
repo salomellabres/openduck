@@ -46,6 +46,8 @@ def args_sanitation(parser):
                 if 'md_length' in input_arguments: args.md_length =  float(input_arguments['md_length'])
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
+                if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
+
             else:
                 parser.error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -71,12 +73,6 @@ def args_sanitation(parser):
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
 
     return args
-
-                
-                
-                
-
-
 
 def parse_input():
     parser = argparse.ArgumentParser(description='Run Dynamic Undocking using openMM')
@@ -104,6 +100,7 @@ def parse_input():
     prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
     # MD/SMD args
     prod = full.add_argument_group('MD/SMD Production parameters')
+    prod.add_argument('-f', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
     prod.add_argument('-n', '--smd_cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     prod.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
     prod.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
@@ -125,8 +122,121 @@ def parse_input():
     args = args_sanitation(parser)
 
     return args
+
+def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist, init_velocity, save_dir):
+    shutil.copyfile(input_checkpoint, "equil.chk")
+    shutil.copyfile(pickle, "complex_system.pickle")
+
+    # Now do the MD
+    # remember start_dist
+    if not Path(save_dir).exists(): save_dir.mkdir()
+    for i in range(num_runs):
+        if i == 0:
+            md_start = "equil.chk"
+        else:
+            md_start = str(Path(save_dir, "md_" + str(i - 1) + ".chk"))
+        log_file = str(Path(save_dir, "md_" + str(i) + ".csv"))
+        perform_md(
+            checkpoint_in_file=md_start,
+            checkpoint_out_file=str(Path(save_dir, "md_" + str(i) + ".chk")),
+            csv_out_file=log_file,
+            pdb_out_file=str(Path(save_dir, "md_" + str(i) + ".pdb")),
+            dcd_out_file=str(Path(save_dir, "md_" + str(i) + ".dcd")),
+            md_len=md_len,
+            gpu_id=gpu_id,
+        )
+        # Open the file and check that the potential is stable and negative
+        if not check_if_equlibrated(log_file, 3):
+            print("SYSTEM NOT EQUILIBRATED")
+            sys.exit()
+        # Now find the interaction and save to a file
+
+
+        run_steered_md(
+            300,
+            str(Path(save_dir, "md_" + str(i) + ".chk")),
+            str(Path(save_dir, "smd_" + str(i) + "_300.csv")),
+            str(Path(save_dir, "smd_" + str(i) + "_300.dat")),
+            str(Path(save_dir, "smd_" + str(i) + "_300.pdb")),
+            str(Path(save_dir, "smd_" + str(i) + "_300.dcd")),
+            start_dist,
+            init_velocity=init_velocity,
+            gpu_id=gpu_id,
+        )
+        run_steered_md(
+            325,
+            str(Path(save_dir, "md_" + str(i) + ".chk")),
+            str(Path(save_dir, "smd_" + str(i) + "_325.csv")),
+            str(Path(save_dir, "smd_" + str(i) + "_325.dat")),
+            str(Path(save_dir, "smd_" + str(i) + "_325.pdb")),
+            str(Path(save_dir, "smd_" + str(i) + "_325.dcd")),
+            start_dist,
+            init_velocity=init_velocity,
+            gpu_id=gpu_id,
+        )
+
+
+
+def do_full_duck_protocol(args):
+    # adapted from run_full_duck_pipeline.py
+
+    # create chunk
+    if args.do_chunk:
+        print('Chunking protein')
+        chunked_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers)
+    else: chunked_file = args.protein
+    # prepare system
+    prepare_system(args.ligand, chunked_file, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
+            small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
+            box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength)
+    results = find_interaction(args.interaction, args.protein)
+    with open('complex_system.pickle', 'rb') as f:
+        p = pickle.load(f) + results
+    with open('complex_system.pickle', 'wb') as f:
+        pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
+    p[0].save('system_complex.inpcrd', overwrite=True)
+
+    # Equlibration
+    do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=results)
+    if not check_if_equlibrated("density.csv", 1):
+        raise EquilibrationError("System is not equilibrated.") # Does this exist?
+    
+    # set up phase, I don't know why are the names changed here. Might be better to ommit it
+    pickle_path = Path('complex_system.pickle')
+    #new_pickle_path = Path('cs.pickle')
+    #pickle_path.rename(new_pickle_path)
+    equil_path = Path('equil.chk')
+    #new_equil_path = Path('eql.chk')
+    #equil_path.rename(new_equil_path)
+    #print('checkpoint_path', equil_path)
+    save_dir = Path('duck_runs')
+    if not save_dir.exists(): save_dir.mkdir()
+
+    # Now production
+    duck_smd_runs(input_checkpoint=equil_path,
+                pickle=pickle_path,
+                num_runs=args.smd_cycles,
+                md_len=args.md_length,
+                gpu_id=args.gpu_id,
+                start_dist=args.init_distance,
+                init_velocity=args.init_velocity,
+                save_dir=save_dir)
+
 if __name__ == '__main__':
     
     args = parse_input()
-    
-    
+    if args.mode == 'full-protocol':
+        do_full_duck_protocol(args)
+    elif args.mode == 'from-equilibration':
+        save_dir = Path('duck_runs')
+        if not save_dir.exists(): save_dir.mkdir()
+        #only need to do production
+        duck_smd_runs(input_checkpoint=args.equilibrated_system,
+                pickle=args.pickle,
+                num_runs=args.smd_cycles,
+                md_len=args.md_length,
+                gpu_id=args.gpu_id,
+                start_dist=args.init_distance,
+                init_velocity=args.init_velocity,
+                save_dir=save_dir)
+        
