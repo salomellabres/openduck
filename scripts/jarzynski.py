@@ -80,7 +80,8 @@ def get_expavg_FD_df(work_df, T=300, calculate_FD=True):
                 MSE_FD = 2*Wdis/(B*N)+(2*Wdis**2)/(N-1)
                 sqrtMSE_FD = MSE_FD**0.5
             except:
-                print(ai, av)
+                #print(ai, av)
+                pass
 
 
 

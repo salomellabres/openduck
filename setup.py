@@ -87,7 +87,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         "console_scripts": [
-            "duck_prepare_sys_for_amber=scripts.duck_prepare_sys_for_amber:main",
+            "openduck=scripts.openduck.py",
             "getWqbValues=scripts.getWqbValues:main",
             "jarzynski=scripts.jarzynski:main",
             "duck_report=scripts.duck_report:main",
