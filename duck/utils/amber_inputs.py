@@ -1,6 +1,32 @@
 import os
 import shutil
 
+# misc
+def log_result(result):
+    result_list = list() # ?¿?
+    # This is called whenever foo_pool(i) returns a result.
+    # result_list is modified only by the main process, not the pool workers.
+    result_list.append(result)
+
+# handle raised errors
+def handle_error(error):
+	print(error, flush=True)
+
+def write_string_to_file(self, file,string):
+    with open(file, 'w') as fh:
+        fh.write(string)
+
+def ligand_string_generator(file):
+    with open(file) as fh:
+        mol = []
+        for line in fh:
+            line=line.rstrip()
+            mol.append(line)
+            if line == '$$$$':
+                new_mol = mol
+                mol = []
+                yield '\n'.join(new_mol)
+                
 class Queue_templates(object):
     def __init__(self, wqb_threshold, replicas, hmr, array_limit=False):
         
@@ -181,7 +207,7 @@ def copy_getWqbValues_script():
     import duck
     base_dir = os.path.abspath(duck.__path__[0])
     shutil.copyfile(os.path.join(base_dir, 'scripts', 'getWqbValues.py'), 'getWqbValues.py')
-    
+  
 if __name__=='__main__':
     queues = Queue_templates(wqb_threshold='7', replicas='8', hmr=True, array_limit=False)
     queues.write_queue_file('local')
