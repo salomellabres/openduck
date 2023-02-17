@@ -67,7 +67,7 @@ def args_sanitation(parser):
         else:
             #all good
             pass
-    elif args.mode == 'Amber-prep':
+    elif args.mode == 'Amber-preparation':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
             parser.error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
         elif args.yaml_input:
@@ -94,7 +94,7 @@ def args_sanitation(parser):
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = bool(input_arguments['wqb_threshold'])
                 if 'smd_cycles' in input_arguments: args.smd_cycles = bool(input_arguments['smd_cycles'])
                 if 'batch' in input_arguments: args.batch = int(input_arguments['batch'])
-                if 'number_of_cpus' in input_arguments: args.number_of_cpus = int(input_arguments['number_of_cpus'])
+                if 'threads' in input_arguments: args.threads = int(input_arguments['threads'])
 
             else:
                 parser.error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
@@ -112,18 +112,19 @@ def parse_input():
     modes = parser.add_subparsers(title='OpenDuck starting mode', help='Modes to run OpenDuck, "full-protocol" with or without chunking and "from-equilibrated from a prepared and equilibrated system.')
     full = modes.add_parser('OpenMM_full-protocol', help='OpenDuck OpenMM full protocol either with or without chunking the protein.')
     full.set_defaults(mode='full-protocol')
-    full.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the parameters for the full openDUck protocol.')
-    full.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
-    full.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
-    full.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
-    full.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
+    full_main = full.add_argument_group('Main arguments')
+    full_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the parameters for the full openDUck protocol.')
+    full_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
+    full_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
+    full_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
+    full_main.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
     # chunking args
-    chunk = full.add_argument_group('Chunking parameters')
+    chunk = full.add_argument_group('Chunking arguments')
     chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
     chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
     chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     # preparation args
-    prep = full.add_argument_group('Parametrization parameters')
+    prep = full.add_argument_group('Parametrization arguments')
     prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
     prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE'), help='Water model to parametrize the solvent with.')
     prep.add_argument('-ff','--protein-forcefield', default='amber99sb', type=str.lower, choices=('amber99sb', 'amber14-all'), help='Protein forcefield to parametrize the chunked protein.')
@@ -131,7 +132,7 @@ def parse_input():
     prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
     prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
     # MD/SMD args
-    prod = full.add_argument_group('MD/SMD Production parameters')
+    prod = full.add_argument_group('MD/SMD Production arguments')
     prod.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
     prod.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     prod.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
@@ -152,33 +153,34 @@ def parse_input():
 
     #Preparation for amber
     amber = modes.add_parser('preparation_for_AMBER', help='Preparation of systems, inputs and queue files for AMBER simulations')
-    amber.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the parameters for the system preparation and inputs/queueing for AMBER.')
-    amber.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
-    amber.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
-    amber.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
-    equil.set_defaults(mode='Amber-preparation')
+    amber_main = amber.add_argument_group('Main arguments')
+    amber.set_defaults(mode='Amber-preparation')
+    amber_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the parameters for the system preparation and inputs/queueing for AMBER.')
+    amber_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
+    amber_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
+    amber_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
 
     # Chunking args
-    amber_chunk = amber.add_argument_group('Chunking parameters')
+    amber_chunk = amber.add_argument_group('Chunking arguments')
     amber_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
     amber_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
     amber_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
 
     # preparation args
-    amber_prep = amber.add_argument_group('Parametrization parameters')
+    amber_prep = amber.add_argument_group('Parametrization arguments')
     amber_prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
     amber_prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE'), help='Water model to parametrize the solvent with.')
     amber_prep.add_argument('-q', '--queue-template', type=str, default = 'local', help='Write out a queue file from templates.')
     amber_prep.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     amber_prep.add_argument('-n', '--smd-cycles', type=int, default=5, help='Ammount of SMD replicas to perform')
-    amber_prep.add_argument('-w', '--wqb-threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
+    amber_prep.add_argument('-W', '--wqb-threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
     amber_prep.add_argument('-ff','--protein-forcefield', default='amber99sb', type=str.lower, choices=('amber99sb', 'amber14-all'), help='Protein forcefield to parametrize the chunked protein.')
     amber_prep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     amber_prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
     amber_prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
     amber_prep.add_argument('--seed', default='-1', type=str, help='Specify seed for amber inputs.')
     amber_prep.add_argument('-B', '--batch', default=False, action='store_true', help='Batch processing for multi-ligand sdf')
-    amber_prep.add_argument('-ncpu', '--number-of-cpus', default=1, type=int, help='Define number of cpus for batch processing.')
+    amber_prep.add_argument('-t', '--threads', default=1, type=int, help='Define number of cpus for batch processing.')
 
     args = args_sanitation(parser)
 
@@ -366,16 +368,16 @@ def do_AMBER_preparation(args):
         from duck.steps.chunk import duck_chunk
         print('Chunking protein')
         chunk_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers)
-    else: chunk_file = args.protein
+    else: chunk_file = args.receptor
 
     if args.batch:
         import multiprocessing as mp
         from duck.utils.amber_inputs import log_result, handle_error, ligand_string_generator
-        pool = mp.Pool(args.number_of_cpus)
+        pool = mp.Pool(args.threads)
         base_dir = os.getcwd()
 
         r = [pool.apply_async(AMBER_prepare_ligand_in_folder,
-                          args=(ligand_string, j+1, args.protein, chunk_file,
+                          args=(ligand_string, j+1, args.receptor, chunk_file,
                                 args.interaction, args.HMR, base_dir,
                                 args.small_molecule_forcefield, args.water_model, args.protein_forcefield,
                                 args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain, args.seed),
@@ -386,22 +388,23 @@ def do_AMBER_preparation(args):
 
         queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, array_limit=len(r), hmr=args.HMR)
     else:
-        if args.number_of_cpus != 1:
+        if args.threads != 1:
             print('WARNING: The number of threads does not have an impact if the batch mode is not enabled.')
-        prepare_sys_for_amber(args.ligand, args.protein, chunk_file, args.interaction, args.HMR, 
+        prepare_sys_for_amber(args.ligand, args.receptor, chunk_file, args.interaction, args.HMR, 
         small_molecule_forcefield=args.small_molecule_forcefield, water_ff_str = args.water_model,
         forcefield_str=f'{args.protein_forcefield}.xml', ionic_strength = args.ionic_strength,
         box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed)
         queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, hmr=args.HMR)
     queue.write_queue_file(kind=args.queue_template)
 
-    
-if __name__ == '__main__':
-    
+def main():
     args = parse_input()
+    print(args)
     if args.mode == 'full-protocol':
         do_full_openMM_protocol(args)
     elif args.mode == 'from-equilibration':
         do_openMM_from_equil(args)
     elif args.mode == 'Amber-preparation':
         do_AMBER_preparation(args)
+if __name__ == '__main__':
+    main()

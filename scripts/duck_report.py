@@ -153,13 +153,12 @@ def get_mols_and_format(data_df, mode='min'):
 
         mols.append(mol)
     return mols
-if __name__ =='__main__':
-    
+def main():
     parser = argparse.ArgumentParser(description='Collect data from duck to report')
     parser.add_argument('-p', '--pattern', type=str, help='Bash wildcard pattern to find folders with duck data')
-    parser.add_argument('-m', '--mode', type=str, default='min', help='Mode to compile the report [min | all | avg]. Default: min')
+    parser.add_argument('-m', '--mode', type=str, default='min', help='Mode to compile the report [min | all | avg]')
     parser.add_argument('-o', '--output', default='stdout', help = 'Output file, default is printing report to stdout.')
-    parser.add_argument('-of', '--output_format', default='csv', type=str, help='Output format, [csv | sdf]. Default: sdf')
+    parser.add_argument('-of', '--output_format', default='csv', type=str, help='Output format, [csv | sdf | tbl].')
     args = parser.parse_args()
 
     if args.output == 'stdout':
@@ -169,7 +168,12 @@ if __name__ =='__main__':
     df = build_report(wqb_info, mode=args.mode)
     if args.output_format == 'csv':
         df.to_csv(args.output, index=False)
+    elif args.output_format == 'tbl':
+        df.to_csv(args.output, index=False, sep='\t')
     elif args.output_format == 'sdf':
         mols = get_mols_and_format(df, mode=args.mode)
         with Chem.SDWriter(args.output) as w:
             [w.write(mol) for mol in mols]
+if __name__ =='__main__':
+    main()
+    

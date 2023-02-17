@@ -184,10 +184,7 @@ def read_pickle(file):
     with open(file, 'r') as fh:
         obj = pickle.load(fh)
     return obj
-if __name__=='__main__':  
-    # usage: launch script in the LIG_target folder to obtain jarzynski report
-    #test_folder = '/home/aserrano/Documents/openduck_validation/Iridium/1ml1/GLY173_N/SMIRNOFF'
-    #os.chdir(test_folder)
+def main():
     temperatures = [300, 325]
     norm_datas, FD_datas = [],[]
     for T in temperatures:
@@ -209,4 +206,8 @@ if __name__=='__main__':
 	#save data in csv
     FD_df.to_csv('fluctuation_dissipation.csv')
     stats_df.to_csv('bootstrapped_stats.csv')
-
+if __name__=='__main__':  
+    # usage: launch script in the LIG_target folder to obtain jarzynski report
+    #test_folder = '/home/aserrano/Documents/openduck_validation/Iridium/1ml1/GLY173_N/SMIRNOFF'
+    #os.chdir(test_folder)
+    main()

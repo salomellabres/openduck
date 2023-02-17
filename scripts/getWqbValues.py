@@ -70,9 +70,8 @@ def get_Wqb_value_AMBER_all(prefix = 'DUCK', file = 'duck.dat'):
 
     Wqb = min(Wqb_values)
     return(Wqb)
-    
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) > 2:
         print(sys.argv)
         print(get_Wqb_value_AMBER_all(sys.argv[1],sys.argv[2]))
@@ -80,3 +79,6 @@ if __name__ == '__main__':
         print(get_Wqb_value_AMBER_all(sys.argv[1]))
     else:
         print(get_Wqb_value_AMBER_all())
+
+if __name__ == '__main__':
+    main()
