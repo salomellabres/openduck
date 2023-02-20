@@ -6,12 +6,12 @@ from pathlib import Path
 import os
 import yaml
 
-def args_sanitation(parser):
+def args_sanitation(parser, modes):
     args = parser.parse_args()
     # check if everything is ok
     if args.mode == 'full-protocol':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
-            parser.error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+            modes.choices['OpenMM_full-protocol'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
@@ -38,15 +38,15 @@ def args_sanitation(parser):
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
 
             else:
-                parser.error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+                modes.choices['OpenMM_full-protocol'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
-            parser.error('The parameters --ligand, --interaction and --receptor are required.')
+            modes.choices['OpenMM_full-protocol'].error('The parameters --ligand, --interaction and --receptor are required.')
         else:
             # all good
             pass
     elif args.mode == 'from-equilibration':
         if (args.yaml_input is None) and (args.input is None or args.pickle is None):
-            parser.error('The input needs to be either the input yaml or specified in the command line equilibrated input and pickle from parametrization.')
+            modes.choices['OpenMM_from-equilibrated'].error('The input needs to be either the input yaml or specified in the command line equilibrated input and pickle from parametrization.')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['pickle', 'equilibrated_system']):
@@ -61,15 +61,15 @@ def args_sanitation(parser):
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
             else:
-                parser.error('You need to specify at least "pickle" and "equilibrated_system" in the yaml file.')
+                modes.choices['OpenMM_from-equilibrated'].error('You need to specify at least "pickle" and "equilibrated_system" in the yaml file.')
         elif (args.pickle is None or args.equilibrated_system is None):
-            parser.error('The parameters --pickle and --equilibrated_system are required.')
+            modes.choices['OpenMM_from-equilibrated'].error('The parameters --pickle and --equilibrated_system are required.')
         else:
             #all good
             pass
     elif args.mode == 'openmm-preparation':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
-            parser.error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+            modes.choices['OpenMM_prepare'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
@@ -92,15 +92,15 @@ def args_sanitation(parser):
                 if 'gpu_id' in input_arguments: args.gpu_id =  str(input_arguments['gpu_id'])
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  str(input_arguments['force_constant_eq'])
             else:
-                parser.error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+                modes.choices['OpenMM_prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
-            parser.error('The parameters --ligand, --interaction and --receptor are required.')
+            modes.choices['OpenMM_prepare'].error('The parameters --ligand, --interaction and --receptor are required.')
         else:
             # all good
             pass
     elif args.mode == 'Amber-preparation':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
-            parser.error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+            modes.choices['AMBER_prepare'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
@@ -128,19 +128,19 @@ def args_sanitation(parser):
                 if 'threads' in input_arguments: args.threads = int(input_arguments['threads'])
 
             else:
-                parser.error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+                modes.choices['AMBER_prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
-            parser.error('The parameters --ligand, --interaction and --receptor are required.')
+            modes.choices['AMBER_prepare'].error('The parameters --ligand, --interaction and --receptor are required.')
         else:
             # all good
             pass
     elif args.mode == 'Report':
         if args.output == 'stdout': args.output = sys.stdout # little trick to print
         if (args.iterations != 20 or args.subsample_size != 20) and args.data not in ('all', 'jarzynski'):
-            parser.error('Iterations and subsample size affect bootstrapping which is only performed when doing jarzynski analysis.') 
+            modes.choices['report'].error('Iterations and subsample size affect bootstrapping which is only performed when doing jarzynski analysis.') 
     elif args.mode == 'Chunk':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
-            parser.error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+            modes.choices['chunk'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
@@ -156,9 +156,9 @@ def args_sanitation(parser):
 
 
             else:
-                parser.error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+                modes.choices['chunk'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
-            parser.error('The parameters --ligand, --interaction and --receptor are required.')
+            modes.choices['chunk'].error('The parameters --ligand, --interaction and --receptor are required.')
         else:
             # all good
             pass
@@ -285,7 +285,7 @@ def parse_input():
     chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     chunk.add_argument('-o', '--output', type=str, default='protein_out.pdb',help='Output format for the chunked protein receptor.')
 
-    args = args_sanitation(parser)
+    args = args_sanitation(parser, modes)
 
     return args, parser
 
