@@ -138,7 +138,31 @@ def args_sanitation(parser):
         if args.output == 'stdout': args.output = sys.stdout # little trick to print
         if (args.iterations != 20 or args.subsample_size != 20) and args.data not in ('all', 'jarzynski'):
             parser.error('Iterations and subsample size affect bootstrapping which is only performed when doing jarzynski analysis.') 
+    elif args.mode == 'Chunk':
+        if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
+            parser.error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+        elif args.yaml_input:
+            input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
+            if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
+                #transfer all required items
+                args.ligand = str(input_arguments['ligand_mol'])
+                args.receptor = str(input_arguments['receptor_pdb'])
+                args.interaction = str(input_arguments['interaction'])
+                
+                # overwrite the defaults from command line args
+                if 'cutoff' in input_arguments: args.cutoff =  float(input_arguments['cutoff'])
+                if 'ignore_buffers' in input_arguments: args.ignore_buffers =  bool(input_arguments['ignore_buffers'])
+                if 'output' in input_arguments: args.output =  bool(input_arguments['output'])
 
+
+            else:
+                parser.error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+        elif (args.ligand is None or args.interaction is None or args.receptor is None):
+            parser.error('The parameters --ligand, --interaction and --receptor are required.')
+        else:
+            # all good
+            pass
+        pass
     return args
 
 def parse_input():
@@ -148,6 +172,7 @@ def parse_input():
     parser.set_defaults(mode=None)
     modes = parser.add_subparsers(title='OpenDuck starting mode', help='Open Dynamic Undocking toolkit.')
     
+    #Arguments for OPENMM_PREPARATION
     openmm_prep = modes.add_parser('OpenMM_prepare', help='Preparation of systems for OpenMM simulations')
     openmm_prep.set_defaults(mode='openmm-preparation')
     openmm_prep_main = openmm_prep.add_argument_group('Main arguments')
@@ -155,12 +180,10 @@ def parse_input():
     openmm_prep_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     openmm_prep_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
     openmm_prep_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
-
     openmm_chunk = openmm_prep.add_argument_group('Chunking arguments')
     openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
     openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
     openmm_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
-    
     openmm_preprep = openmm_prep.add_argument_group('Parametrization arguments')
     openmm_preprep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
     openmm_preprep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE'), help='Water model to parametrize the solvent with.')
@@ -168,13 +191,12 @@ def parse_input():
     openmm_preprep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     openmm_preprep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
     openmm_preprep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
-
     openmm_prepeq = openmm_prep.add_argument_group('Equilibration arguments')
     openmm_prepeq.add_argument('--do-equilibrate', action='store_true', help='Perform equilibration after preparing system.')
     openmm_prepeq.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
     openmm_prepeq.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
 
-
+    #Arguments for OpenMM full-protocol
     full = modes.add_parser('OpenMM_full-protocol', help='OpenDuck OpenMM full protocol either with or without chunking the protein.')
     full.set_defaults(mode='full-protocol')
     full_main = full.add_argument_group('Main arguments')
@@ -183,12 +205,10 @@ def parse_input():
     full_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
     full_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
     full_main.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
-    # chunking args
-    chunk = full.add_argument_group('Chunking arguments')
-    chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
-    chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
-    chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
-    # preparation args
+    openmm_chunk = full.add_argument_group('Chunking arguments')
+    openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
+    openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
+    openmm_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     prep = full.add_argument_group('Parametrization arguments')
     prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
     prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE'), help='Water model to parametrize the solvent with.')
@@ -196,7 +216,6 @@ def parse_input():
     prep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
     prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
-    # MD/SMD args
     prod = full.add_argument_group('MD/SMD Production arguments')
     prod.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
     prod.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
@@ -204,7 +223,7 @@ def parse_input():
     prod.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
     prod.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
     
-    #run from equil
+    #Arguments for OpenMM form equilibrated system
     equil = modes.add_parser('OpenMM_from-equilibrated', help='OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from duck_prepare_sys.py)')
     equil.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the openMM simulations from the equilibrated system.')
     equil.add_argument('-s', '--equilibrated-system', default=None, help='Equilibrated system as input (*.chk).')
@@ -216,7 +235,7 @@ def parse_input():
     equil.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
     equil.set_defaults(mode='from-equilibrated')
 
-    #Preparation for amber
+    #Arguments for OPENMM_PREPARATION
     amber = modes.add_parser('AMBER_prepare', help='Preparation of systems, inputs and queue files for AMBER simulations')
     amber_main = amber.add_argument_group('Main arguments')
     amber.set_defaults(mode='Amber-preparation')
@@ -224,14 +243,10 @@ def parse_input():
     amber_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     amber_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
     amber_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
-
-    # Chunking args
     amber_chunk = amber.add_argument_group('Chunking arguments')
     amber_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
     amber_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
     amber_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
-
-    # preparation args
     amber_prep = amber.add_argument_group('Parametrization arguments')
     amber_prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
     amber_prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE', 'TIP4EW'), help='Water model to parametrize the solvent with.')
@@ -247,6 +262,7 @@ def parse_input():
     amber_prep.add_argument('-B', '--batch', default=False, action='store_true', help='Batch processing for multi-ligand sdf')
     amber_prep.add_argument('-t', '--threads', default=1, type=int, help='Define number of cpus for batch processing.')
 
+    #Arguments for report
     report = modes.add_parser('report', help='Generate report for openduck results.')
     report.set_defaults(mode='Report')
     report.add_argument('-p', '--pattern', type=str, help='Wildcard pattern to find folders with DUck data')
@@ -257,6 +273,17 @@ def parse_input():
     report.add_argument('-s', '--subsample-size', default=20, type=int, help='Subsample size for jarzynski bootstrapping.')
     report.add_argument('-i', '--iterations', default=20, type=int, help='Number of bootstrapping iterations for jarzynski analysis.')
     report.add_argument('-t', '--step-threshold', default=2500, type=int, help='steps_treshold to find the minima')
+
+    #Arguments for chunk
+    chunk = modes.add_parser('chunk', help='Chunk a protein for Dynamic Undocking.')
+    chunk.set_defaults(mode='Chunk')
+    chunk.add_argument('-y', '--yaml-input', type=str, default=None, help='nput yaml file with the all the arguments for chunking.')
+    chunk.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
+    chunk.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
+    chunk.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
+    chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
+    chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
+    chunk.add_argument('-o', '--output', type=str, default='protein_out.pdb',help='Output format for the chunked protein receptor.')
 
     args = args_sanitation(parser)
 
@@ -523,6 +550,9 @@ def main():
         do_AMBER_preparation(args)
     elif args.mode == 'Report':
         do_report(args)
+    elif args.mode == 'Chunk':
+        from duck.steps.chunk import duck_chunk
+        duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff,output_name=args.output, ignore_buffers=args.ignore_buffers)
     else:
         parser.print_help()
 if __name__ == '__main__':
