@@ -152,7 +152,7 @@ def args_sanitation(parser, modes):
                 # overwrite the defaults from command line args
                 if 'cutoff' in input_arguments: args.cutoff =  float(input_arguments['cutoff'])
                 if 'ignore_buffers' in input_arguments: args.ignore_buffers =  bool(input_arguments['ignore_buffers'])
-                if 'output' in input_arguments: args.output =  bool(input_arguments['output'])
+                if 'output' in input_arguments: args.output =  str(input_arguments['output'])
 
 
             else:
@@ -170,7 +170,7 @@ def parse_input():
     '''
     parser = argparse.ArgumentParser(description='Open Dynamic Undocking')
     parser.set_defaults(mode=None)
-    modes = parser.add_subparsers(title='OpenDuck starting mode', help='Open Dynamic Undocking toolkit.')
+    modes = parser.add_subparsers(title='Open Dynamic Undocking toolkit. Choose one of the following actions', help='', metavar='')
     
     #Arguments for OPENMM_PREPARATION
     openmm_prep = modes.add_parser('OpenMM_prepare', help='Preparation of systems for OpenMM simulations')
@@ -552,6 +552,7 @@ def main():
         do_report(args)
     elif args.mode == 'Chunk':
         from duck.steps.chunk import duck_chunk
+        print(args)
         duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff,output_name=args.output, ignore_buffers=args.ignore_buffers)
     else:
         parser.print_help()
