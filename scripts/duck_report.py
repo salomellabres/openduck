@@ -120,7 +120,7 @@ def flatten_wqb_dict(info_dict):
             v[j+1].append(values[i][1][j][1])
     return {ks: vs for ks, vs in zip(k, v)}
 
-def build_report(info_dict, mode='min'):
+def build_report_df(info_dict, mode='min'):
     if mode == 'min':
         df = pd.DataFrame({'System': list(info_dict.keys()), 'Wqb':[wqb[0] for wqb in info_dict.values()]})
     elif mode == 'all':
@@ -149,23 +149,21 @@ def get_mols_and_format(data_df, mode='min'):
             mol.SetProp('Wqb', str(row['Wqb']) )
             mol.SetProp('Wqb Avg', str(row['Average']) )
             mol.SetProp('Wqb sd', str(row['SD']) )
-
-
         mols.append(mol)
     return mols
 def main():
     parser = argparse.ArgumentParser(description='Collect data from duck to report')
-    parser.add_argument('-p', '--pattern', type=str, help='Bash wildcard pattern to find folders with duck data')
+    parser.add_argument('-p', '--pattern', default='.', type=str, help='Bash wildcard pattern to find folders with duck data')
     parser.add_argument('-m', '--mode', type=str, default='min', help='Mode to compile the report [min | all | avg]')
     parser.add_argument('-o', '--output', default='stdout', help = 'Output file, default is printing report to stdout.')
-    parser.add_argument('-of', '--output_format', default='csv', type=str, help='Output format, [csv | sdf | tbl].')
+    parser.add_argument('-of', '--output_format', default='tbl', type=str, help='Output format, [csv | sdf | tbl].')
     args = parser.parse_args()
 
     if args.output == 'stdout':
         args.output = sys.stdout
         
     wqb_info = iterate_systems(args.pattern)
-    df = build_report(wqb_info, mode=args.mode)
+    df = build_report_df(wqb_info, mode=args.mode)
     if args.output_format == 'csv':
         df.to_csv(args.output, index=False)
     elif args.output_format == 'tbl':
