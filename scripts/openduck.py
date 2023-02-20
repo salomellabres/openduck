@@ -67,6 +67,37 @@ def args_sanitation(parser):
         else:
             #all good
             pass
+    elif args.mode == 'openmm-preparation':
+        if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
+            parser.error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+        elif args.yaml_input:
+            input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
+            if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
+                #transfer all required items
+                args.ligand = str(input_arguments['ligand_mol'])
+                args.receptor = str(input_arguments['receptor_pdb'])
+                args.interaction = str(input_arguments['interaction'])
+                
+                # overwrite the defaults from command line args
+                if 'do_chunk' in input_arguments: args.do_chunk =  bool(input_arguments['do_chunk'])
+                if 'cutoff' in input_arguments: args.cutoff =  float(input_arguments['cutoff'])
+                if 'ignore_buffers' in input_arguments: args.ignore_buffers =  bool(input_arguments['ignore_buffers'])
+                if 'small_molecule_forcefield' in input_arguments: args.small_molecule_forcefield =  str(input_arguments['small_molecule_forcefield'])
+                if 'water_model' in input_arguments: args.water_model =  str(input_arguments['water_model'])
+                if 'protein_forcefield' in input_arguments: args.protein_forcefield =  str(input_arguments['protein_forcefield'])
+                if 'ionic_strength' in input_arguments: args.ionic_strength =  float(input_arguments['ionic_strength'])
+                if 'solvent_buffer_distance' in input_arguments: args.solvent_buffer_distance =  float(input_arguments['solvent_buffer_distance'])
+                if 'waters_to_retain' in input_arguments: args.waters_to_retain =  str(input_arguments['waters_to_retain'])
+                if 'do_equilibrate' in input_arguments: args.do_equilibrate =  str(input_arguments['do_equilibrate'])
+                if 'gpu_id' in input_arguments: args.gpu_id =  str(input_arguments['gpu_id'])
+                if 'force_constant_eq' in input_arguments: args.force_constant_eq =  str(input_arguments['force_constant_eq'])
+            else:
+                parser.error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+        elif (args.ligand is None or args.interaction is None or args.receptor is None):
+            parser.error('The parameters --ligand, --interaction and --receptor are required.')
+        else:
+            # all good
+            pass
     elif args.mode == 'Amber-preparation':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
             parser.error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
@@ -103,17 +134,51 @@ def args_sanitation(parser):
         else:
             # all good
             pass
+    elif args.mode == 'Report':
+        if args.output == 'stdout': args.output = sys.stdout # little trick to print
+        if (args.iterations != 20 or args.subsample_size != 20) and args.data not in ('all', 'jarzynski'):
+            parser.error('Iterations and subsample size affect bootstrapping which is only performed when doing jarzynski analysis.') 
 
     return args
 
 def parse_input():
+    ''' Main openduck parser, subparsers define action modes
+    '''
     parser = argparse.ArgumentParser(description='Open Dynamic Undocking')
-    # run modes full | from equil
-    modes = parser.add_subparsers(title='OpenDuck starting mode', help='Modes to run OpenDuck, "full-protocol" with or without chunking and "from-equilibrated from a prepared and equilibrated system.')
+    parser.set_defaults(mode=None)
+    modes = parser.add_subparsers(title='OpenDuck starting mode', help='Open Dynamic Undocking toolkit.')
+    
+    openmm_prep = modes.add_parser('OpenMM_prepare', help='Preparation of systems for OpenMM simulations')
+    openmm_prep.set_defaults(mode='openmm-preparation')
+    openmm_prep_main = openmm_prep.add_argument_group('Main arguments')
+    openmm_prep_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for openMM preparation')
+    openmm_prep_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
+    openmm_prep_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
+    openmm_prep_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
+
+    openmm_chunk = openmm_prep.add_argument_group('Chunking arguments')
+    openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
+    openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
+    openmm_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
+    
+    openmm_preprep = openmm_prep.add_argument_group('Parametrization arguments')
+    openmm_preprep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
+    openmm_preprep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE'), help='Water model to parametrize the solvent with.')
+    openmm_preprep.add_argument('-ff','--protein-forcefield', default='amber99sb', type=str.lower, choices=('amber99sb', 'amber14-all'), help='Protein forcefield to parametrize the chunked protein.')
+    openmm_preprep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
+    openmm_preprep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
+    openmm_preprep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
+
+    openmm_prepeq = openmm_prep.add_argument_group('Equilibration arguments')
+    openmm_prepeq.add_argument('--do-equilibrate', action='store_true', help='Perform equilibration after preparing system.')
+    openmm_prepeq.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
+    openmm_prepeq.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
+
+
     full = modes.add_parser('OpenMM_full-protocol', help='OpenDuck OpenMM full protocol either with or without chunking the protein.')
     full.set_defaults(mode='full-protocol')
     full_main = full.add_argument_group('Main arguments')
-    full_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the parameters for the full openDUck protocol.')
+    full_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the full openDUck protocol.')
     full_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     full_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
     full_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
@@ -141,7 +206,7 @@ def parse_input():
     
     #run from equil
     equil = modes.add_parser('OpenMM_from-equilibrated', help='OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from duck_prepare_sys.py)')
-    equil.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the parameters for the openMM simulations from the equilibrated system.')
+    equil.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the openMM simulations from the equilibrated system.')
     equil.add_argument('-s', '--equilibrated-system', default=None, help='Equilibrated system as input (*.chk).')
     equil.add_argument('-p', '--pickle', default=None, help='Pickle output from preparation.')
     equil.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
@@ -152,10 +217,10 @@ def parse_input():
     equil.set_defaults(mode='from-equilibrated')
 
     #Preparation for amber
-    amber = modes.add_parser('preparation_for_AMBER', help='Preparation of systems, inputs and queue files for AMBER simulations')
+    amber = modes.add_parser('AMBER_prepare', help='Preparation of systems, inputs and queue files for AMBER simulations')
     amber_main = amber.add_argument_group('Main arguments')
     amber.set_defaults(mode='Amber-preparation')
-    amber_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the parameters for the system preparation and inputs/queueing for AMBER.')
+    amber_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the system preparation and inputs/queueing for AMBER.')
     amber_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     amber_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
     amber_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
@@ -169,7 +234,7 @@ def parse_input():
     # preparation args
     amber_prep = amber.add_argument_group('Parametrization arguments')
     amber_prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
-    amber_prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE'), help='Water model to parametrize the solvent with.')
+    amber_prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE', 'TIP4EW'), help='Water model to parametrize the solvent with.')
     amber_prep.add_argument('-q', '--queue-template', type=str, default = 'local', help='Write out a queue file from templates.')
     amber_prep.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     amber_prep.add_argument('-n', '--smd-cycles', type=int, default=5, help='Ammount of SMD replicas to perform')
@@ -182,9 +247,20 @@ def parse_input():
     amber_prep.add_argument('-B', '--batch', default=False, action='store_true', help='Batch processing for multi-ligand sdf')
     amber_prep.add_argument('-t', '--threads', default=1, type=int, help='Define number of cpus for batch processing.')
 
+    report = modes.add_parser('report', help='Generate report for openduck results.')
+    report.set_defaults(mode='Report')
+    report.add_argument('-p', '--pattern', type=str, help='Wildcard pattern to find folders with DUck data')
+    report.add_argument('-d', '--data', type=str, default='min', choices=('min', 'single', 'avg', 'jarzynski', 'all'), help='Mode to compile the report [min | single | avg | jarzynski | all]')
+    report.add_argument('-o', '--output', default='stdout', help = 'Output file, default is printing report to stdout.')
+    report.add_argument('-of', '--output-format', default='tbl', choices=('csv', 'sdf', 'tbl') , type=str, help='Output format, [csv | sdf | tbl].')
+    report.add_argument('--plot', default=False, action='store_true', help='Plot work or energy values to file.')
+    report.add_argument('-s', '--subsample-size', default=20, type=int, help='Subsample size for jarzynski bootstrapping.')
+    report.add_argument('-i', '--iterations', default=20, type=int, help='Number of bootstrapping iterations for jarzynski analysis.')
+    report.add_argument('-t', '--step-threshold', default=2500, type=int, help='steps_treshold to find the minima')
+
     args = args_sanitation(parser)
 
-    return args
+    return args, parser
 
 def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist, init_velocity, save_dir):
     from duck.steps.normal_md import perform_md
@@ -299,32 +375,9 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
 #### main functions
 def do_full_openMM_protocol(args):
     # adapted from run_full_duck_pipeline.py
-    from duck.utils.check_system import check_if_equlibrated
-    from duck.steps.equlibrate import do_equlibrate
-    from duck.steps.parametrize import prepare_system
-    from duck.utils.cal_ints import find_interaction
-    # create chunk
-    if args.do_chunk:
-        print('Chunking protein')
-        from duck.steps.chunk import duck_chunk
-        chunked_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers)
-    else: chunked_file = args.protein
-    # prepare system
-    prepare_system(args.ligand, chunked_file, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
-            small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
-            box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength)
-    results = find_interaction(args.interaction, args.protein)
-    with open('complex_system.pickle', 'rb') as f:
-        p = pickle.load(f) + results
-    with open('complex_system.pickle', 'wb') as f:
-        pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
-    p[0].save('system_complex.inpcrd', overwrite=True)
+    args.do_equilibrate = True
+    do_OpenMM_preparation(args)
 
-    # Equlibration
-    do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=results)
-    if not check_if_equlibrated("density.csv", 1):
-        raise EquilibrationError("System is not equilibrated.") # Does this exist?
-    
     # set up phase, I don't know why are the names changed here. Might be better to ommit it
     pickle_path = Path('complex_system.pickle')
     #new_pickle_path = Path('cs.pickle')
@@ -397,14 +450,80 @@ def do_AMBER_preparation(args):
         queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, hmr=args.HMR)
     queue.write_queue_file(kind=args.queue_template)
 
+def do_report(args):
+    from duck.utils.analysis_and_report import get_Wqb_value_AMBER_all, do_jarzynski_analysis, build_report_df, get_mols_and_format 
+    import glob
+    #iterate_folders
+    folders = glob.glob(args.pattern)
+    wqb_info = {}
+    for folder in folders:
+        wqb_info.setdefault(folder, [])
+        #calculate_wqb and/or jaryznski
+        currdir = os.getcwd()
+        os.chdir(folder)
+        if args.data in ('min', 'single', 'avg', 'all'):
+            wqb = get_Wqb_value_AMBER_all(prefix='DUCK', file='duck.dat', plot=args.plot)
+            wqb_info[folder].extend(wqb)
+        if args.data == 'jarzynski' or args.data == 'all':
+            expavg, sd, sem_v = do_jarzynski_analysis(index_treshold = args.step_threshold, sample_size=args.subsample_size, samples=args.iterations, plot=args.plot)
+            wqb_info[folder].extend([expavg, sd, sem_v])
+        os.chdir(currdir)
+
+    df = build_report_df(wqb_info, mode=args.data)
+    if args.output_format == 'csv':
+        df.to_csv(args.output, index=False)
+    elif args.output_format == 'tbl':
+        df.to_csv(args.output, index=False, sep='\t')
+    elif args.output_format == 'sdf':
+        from rdkit import Chem
+        mols = get_mols_and_format(df, mode=args.data)
+        with Chem.SDWriter(args.output) as w:
+            [w.write(mol) for mol in mols]
+
+def do_OpenMM_preparation(args):
+    from duck.utils.check_system import check_if_equlibrated
+    from duck.steps.equlibrate import do_equlibrate
+    from duck.steps.parametrize import prepare_system
+    from duck.utils.cal_ints import find_interaction
+    # create chunk
+    if args.do_chunk:
+        print('Chunking protein')
+        from duck.steps.chunk import duck_chunk
+        chunked_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers)
+    else: chunked_file = args.protein
+    # prepare system
+    prepare_system(args.ligand, chunked_file, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
+            small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
+            box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength)
+    results = find_interaction(args.interaction, args.protein)
+    with open('complex_system.pickle', 'rb') as f:
+        p = pickle.load(f) + results
+    with open('complex_system.pickle', 'wb') as f:
+        pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
+    p[0].save('system_complex.inpcrd', overwrite=True)
+
+    # Equlibration
+    if args.do_equilibrate:
+        do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=results)
+        if not check_if_equlibrated("density.csv", 1):
+            raise EquilibrationError("System is not equilibrated.") # Does this exist?
+
 def main():
-    args = parse_input()
-    print(args)
+    # Parse and sanitize the inputs
+    args, parser = parse_input()
+    
+    # Chose and perform the specified action
     if args.mode == 'full-protocol':
         do_full_openMM_protocol(args)
+    elif args.mode == 'openmm-preparation':
+        do_OpenMM_preparation(args)
     elif args.mode == 'from-equilibration':
         do_openMM_from_equil(args)
     elif args.mode == 'Amber-preparation':
         do_AMBER_preparation(args)
+    elif args.mode == 'Report':
+        do_report(args)
+    else:
+        parser.print_help()
 if __name__ == '__main__':
     main()
