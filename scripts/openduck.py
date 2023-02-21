@@ -45,8 +45,9 @@ def args_sanitation(parser, modes):
             # all good
             pass
     elif args.mode == 'from-equilibration':
-        if (args.yaml_input is None) and (args.input is None or args.pickle is None):
-            modes.choices['OpenMM_from-equilibrated'].error('The input needs to be either the input yaml or specified in the command line equilibrated input and pickle from parametrization.')
+        print(args)
+        if (args.yaml_input is None) and (args.equilibrated_system is None or args.pickle is None):
+            modes.choices['OpenMM_from-equilibrated'].error('The input needs to be either the input yaml or specified in the command line system "pickle" and "equilibrated_system" from parametrization.')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['pickle', 'equilibrated_system']):
@@ -233,9 +234,9 @@ def parse_input():
     equil.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     equil.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
     equil.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
-    equil.add_argument('-d' '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
+    equil.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
     equil.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
-    equil.set_defaults(mode='from-equilibrated')
+    equil.set_defaults(mode='from-equilibration')
 
     #Arguments for OPENMM_PREPARATION
     amber = modes.add_parser('AMBER_prepare', help='Preparation of systems, inputs and queue files for AMBER simulations')
@@ -423,7 +424,7 @@ def do_full_openMM_protocol(args):
                 md_len=args.md_length,
                 gpu_id=args.gpu_id,
                 start_dist=args.init_distance,
-                init_velocity=args.init_velocity,
+                init_velocity=args.init_velocities,
                 save_dir=save_dir)
 
 def do_openMM_from_equil(args):
@@ -436,7 +437,7 @@ def do_openMM_from_equil(args):
             md_len=args.md_length,
             gpu_id=args.gpu_id,
             start_dist=args.init_distance,
-            init_velocity=args.init_velocity,
+            init_velocity=args.init_velocities,
             save_dir=save_dir)
 
 def do_AMBER_preparation(args):
