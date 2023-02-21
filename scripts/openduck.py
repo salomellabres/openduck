@@ -25,9 +25,9 @@ def args_sanitation(parser, modes):
                 if 'do_chunk' in input_arguments: args.do_chunk =  bool(input_arguments['do_chunk'])
                 if 'cutoff' in input_arguments: args.cutoff =  float(input_arguments['cutoff'])
                 if 'ignore_buffers' in input_arguments: args.ignore_buffers =  bool(input_arguments['ignore_buffers'])
-                if 'small_molecule_forcefield' in input_arguments: args.small_molecule_forcefield =  str(input_arguments['small_molecule_forcefield'])
-                if 'water_model' in input_arguments: args.water_model =  str(input_arguments['water_model'])
-                if 'protein_forcefield' in input_arguments: args.protein_forcefield =  str(input_arguments['protein_forcefield'])
+                if 'small_molecule_forcefield' in input_arguments: args.small_molecule_forcefield =  str(input_arguments['small_molecule_forcefield']).upper()
+                if 'water_model' in input_arguments: args.water_model =  str(input_arguments['water_model']).lower()
+                if 'protein_forcefield' in input_arguments: args.protein_forcefield =  str(input_arguments['protein_forcefield']).lower()
                 if 'ionic_strength' in input_arguments: args.ionic_strength =  float(input_arguments['ionic_strength'])
                 if 'solvent_buffer_distance' in input_arguments: args.solvent_buffer_distance =  float(input_arguments['solvent_buffer_distance'])
                 if 'waters_to_retain' in input_arguments: args.waters_to_retain =  str(input_arguments['waters_to_retain'])
@@ -82,15 +82,15 @@ def args_sanitation(parser, modes):
                 if 'do_chunk' in input_arguments: args.do_chunk =  bool(input_arguments['do_chunk'])
                 if 'cutoff' in input_arguments: args.cutoff =  float(input_arguments['cutoff'])
                 if 'ignore_buffers' in input_arguments: args.ignore_buffers =  bool(input_arguments['ignore_buffers'])
-                if 'small_molecule_forcefield' in input_arguments: args.small_molecule_forcefield =  str(input_arguments['small_molecule_forcefield'])
-                if 'water_model' in input_arguments: args.water_model =  str(input_arguments['water_model'])
-                if 'protein_forcefield' in input_arguments: args.protein_forcefield =  str(input_arguments['protein_forcefield'])
+                if 'small_molecule_forcefield' in input_arguments: args.small_molecule_forcefield =  str(input_arguments['small_molecule_forcefield']).upper()
+                if 'water_model' in input_arguments: args.water_model =  str(input_arguments['water_model']).lower()
+                if 'protein_forcefield' in input_arguments: args.protein_forcefield =  str(input_arguments['protein_forcefield']).lower()
                 if 'ionic_strength' in input_arguments: args.ionic_strength =  float(input_arguments['ionic_strength'])
                 if 'solvent_buffer_distance' in input_arguments: args.solvent_buffer_distance =  float(input_arguments['solvent_buffer_distance'])
                 if 'waters_to_retain' in input_arguments: args.waters_to_retain =  str(input_arguments['waters_to_retain'])
                 if 'do_equilibrate' in input_arguments: args.do_equilibrate =  str(input_arguments['do_equilibrate'])
                 if 'gpu_id' in input_arguments: args.gpu_id =  str(input_arguments['gpu_id'])
-                if 'force_constant_eq' in input_arguments: args.force_constant_eq =  str(input_arguments['force_constant_eq'])
+                if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
             else:
                 modes.choices['OpenMM_prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -113,20 +113,22 @@ def args_sanitation(parser, modes):
                 if 'do_chunk' in input_arguments: args.do_chunk =  bool(input_arguments['do_chunk'])
                 if 'cutoff' in input_arguments: args.cutoff =  float(input_arguments['cutoff'])
                 if 'ignore_buffers' in input_arguments: args.ignore_buffers =  bool(input_arguments['ignore_buffers'])
-                if 'small_molecule_forcefield' in input_arguments: args.small_molecule_forcefield =  str(input_arguments['small_molecule_forcefield'])
-                if 'water_model' in input_arguments: args.water_model =  str(input_arguments['water_model'])
-                if 'protein_forcefield' in input_arguments: args.protein_forcefield =  str(input_arguments['protein_forcefield'])
+                if 'small_molecule_forcefield' in input_arguments: args.small_molecule_forcefield =  str(input_arguments['small_molecule_forcefield']).upper()
+                if 'water_model' in input_arguments: args.water_model =  str(input_arguments['water_model']).lower()
+                if 'protein_forcefield' in input_arguments: args.protein_forcefield =  str(input_arguments['protein_forcefield']).lower()
                 if 'ionic_strength' in input_arguments: args.ionic_strength =  float(input_arguments['ionic_strength'])
                 if 'solvent_buffer_distance' in input_arguments: args.solvent_buffer_distance =  float(input_arguments['solvent_buffer_distance'])
                 if 'waters_to_retain' in input_arguments: args.waters_to_retain =  str(input_arguments['waters_to_retain'])
                 if 'seed' in input_arguments: args.seed =  str(input_arguments['seed'])
                 if 'queue_template' in input_arguments: args.queue_template = str(input_arguments['queue_template'])
                 if 'HMR' in input_arguments: args.HMR = bool(input_arguments['HMR'])
-                if 'wqb_threshold' in input_arguments: args.wqb_threshold = bool(input_arguments['wqb_threshold'])
-                if 'smd_cycles' in input_arguments: args.smd_cycles = bool(input_arguments['smd_cycles'])
+                if 'wqb_threshold' in input_arguments: args.wqb_threshold = int(input_arguments['wqb_threshold'])
+                if 'smd_cycles' in input_arguments: args.smd_cycles = int(input_arguments['smd_cycles'])
                 if 'batch' in input_arguments: args.batch = int(input_arguments['batch'])
                 if 'threads' in input_arguments: args.threads = int(input_arguments['threads'])
-
+                if args.queue_template == 'local' and args.batch: args.queue_template = None # no local array script
+                if (not args.ligand.endswith('.sdf') and not args.ligand.endswith('.sd')) and args.batch:
+                    modes.choices['AMBER_prepare'].error('Batch processing needs the ligand in sd or sdf format.')
             else:
                 modes.choices['AMBER_prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -186,7 +188,7 @@ def parse_input():
     openmm_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     openmm_preprep = openmm_prep.add_argument_group('Parametrization arguments')
     openmm_preprep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
-    openmm_preprep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE'), help='Water model to parametrize the solvent with.')
+    openmm_preprep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('tip3p', 'spce'), help='Water model to parametrize the solvent with.')
     openmm_preprep.add_argument('-ff','--protein-forcefield', default='amber99sb', type=str.lower, choices=('amber99sb', 'amber14-all'), help='Protein forcefield to parametrize the chunked protein.')
     openmm_preprep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     openmm_preprep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
@@ -211,7 +213,7 @@ def parse_input():
     openmm_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     prep = full.add_argument_group('Parametrization arguments')
     prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
-    prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE'), help='Water model to parametrize the solvent with.')
+    prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('tip3p', 'spce'), help='Water model to parametrize the solvent with.')
     prep.add_argument('-ff','--protein-forcefield', default='amber99sb', type=str.lower, choices=('amber99sb', 'amber14-all'), help='Protein forcefield to parametrize the chunked protein.')
     prep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
@@ -249,7 +251,7 @@ def parse_input():
     amber_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     amber_prep = amber.add_argument_group('Parametrization arguments')
     amber_prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
-    amber_prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('TIP3P', 'SPCE', 'TIP4EW'), help='Water model to parametrize the solvent with.')
+    amber_prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('tip3p', 'spce', 'tip4pew'), help='Water model to parametrize the solvent with.')
     amber_prep.add_argument('-q', '--queue-template', type=str, default = 'local', help='Write out a queue file from templates.')
     amber_prep.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
     amber_prep.add_argument('-n', '--smd-cycles', type=int, default=5, help='Ammount of SMD replicas to perform')
@@ -365,8 +367,6 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     #p = (parmed_structure, prot_index, ligand_index, pairmeandistance)
     p[0].save('system_complex.inpcrd', overwrite=True)
 
-    
-    #do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=p[1:])
     amber = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed)
     amber.write_all_inputs()
 
@@ -393,7 +393,7 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
 
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
-                                  forcefield_str=f'{forcefield}.xml', ion_strenght = ion_strength,
+                                  forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
                                   box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed)
 
     #os.chdir(f'..')
@@ -462,11 +462,11 @@ def do_AMBER_preparation(args):
                                 args.small_molecule_forcefield, args.water_model, args.protein_forcefield,
                                 args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain, args.seed),
                           callback=log_result,
-                          error_callback=handle_error) for j, ligand_string in enumerate(ligand_string_generator(args.ligands))]
+                          error_callback=handle_error) for j, ligand_string in enumerate(ligand_string_generator(args.ligand))]
         pool.close()
         pool.join()
 
-        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, array_limit=len(r), hmr=args.HMR)
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, array_limit=len(r), hmr=args.HMR)
     else:
         if args.threads != 1:
             print('WARNING: The number of threads does not have an impact if the batch mode is not enabled.')
@@ -474,7 +474,7 @@ def do_AMBER_preparation(args):
         small_molecule_forcefield=args.small_molecule_forcefield, water_ff_str = args.water_model,
         forcefield_str=f'{args.protein_forcefield}.xml', ionic_strength = args.ionic_strength,
         box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed)
-        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.replicas, hmr=args.HMR)
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, hmr=args.HMR)
     queue.write_queue_file(kind=args.queue_template)
 
 def do_report(args):
@@ -517,12 +517,12 @@ def do_OpenMM_preparation(args):
         print('Chunking protein')
         from duck.steps.chunk import duck_chunk
         chunked_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers)
-    else: chunked_file = args.protein
+    else: chunked_file = args.receptor
     # prepare system
     prepare_system(args.ligand, chunked_file, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
             small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
             box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength)
-    results = find_interaction(args.interaction, args.protein)
+    results = find_interaction(args.interaction, args.receptor)
     with open('complex_system.pickle', 'rb') as f:
         p = pickle.load(f) + results
     with open('complex_system.pickle', 'wb') as f:
@@ -530,6 +530,7 @@ def do_OpenMM_preparation(args):
     p[0].save('system_complex.inpcrd', overwrite=True)
 
     # Equlibration
+    print(results)
     if args.do_equilibrate:
         do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=results)
         if not check_if_equlibrated("density.csv", 1):
