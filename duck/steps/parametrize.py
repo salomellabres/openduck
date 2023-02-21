@@ -85,8 +85,8 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
     print("Parametrizing ions")
     complex = parmed.load_file("./complex_solvated.pdb")
     ions = complex["(:NA,CL)"]
-    forcefield = app.ForceField(forcefield_str)
-    ions_system = forcefield.createSystem(ions.topology)
+    ions_forcefield = app.ForceField('amber99sb.xml')
+    ions_system = ions_forcefield.createSystem(ions.topology)
     ions_pmd = parmed.openmm.load_topology(ions.topology, ions_system, ions.positions)
     print("Parametrizing ions done")
     print(f"Parametrizing solvent using {water_ff_str}")

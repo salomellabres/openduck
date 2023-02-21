@@ -12,7 +12,7 @@ def log_result(result):
 def handle_error(error):
 	print(error, flush=True)
 
-def write_string_to_file(self, file,string):
+def write_string_to_file(file,string):
     with open(file, 'w') as fh:
         fh.write(string)
 

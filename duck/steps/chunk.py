@@ -35,7 +35,7 @@ def do_tleap(prot_protein_chunk, out_save, disulfides=[]):
     out_f = open("run.tleap", "w")
     out_f.write(return_tleap(prot_protein_chunk, out_save, disulfides))
     out_f.close()
-    os.system("tleap -f run.tleap")
+    os.system("tleap -f run.tleap > chunk_leap.log")
 
 
 def add_cap(x, atom_set):
