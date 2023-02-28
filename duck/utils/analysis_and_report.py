@@ -26,7 +26,10 @@ def eprint(*args, **kwargs):
 def get_mols_and_format(data_df, mode='min'):
     mols = []
     for i, row in data_df.iterrows():
-        mol = Chem.MolFromPDBFile(os.path.join(row['System'], 'ligand.pdb'))
+        ligand_file = os.path.join(row['System'], 'ligand.pdb')
+        if not os.path.isfile(ligand_file):
+            raise OSError(f'Can not open {ligand_file} make sure you have the ligands in the duck folders to obtain sd format output of the report.')
+        mol = Chem.MolFromPDBFile(ligand_file)
         mol.SetProp('_Name', row['System'])
         if mode == 'min':
             mol.SetProp('WQB', str(row['WQB']) )
