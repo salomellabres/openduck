@@ -23,6 +23,7 @@ def run_steered_md(
     gpu_id=0,
 ):
     if os.path.isfile(pdb_out_file):
+        print(f'{pdb_out_file} is already calculated, skipping' )
         return
     spring_k = spring_constant * u.kilocalorie / (u.mole * u.angstrom * u.angstrom)
     dist_in = startdist * u.angstrom  # in angstrom
