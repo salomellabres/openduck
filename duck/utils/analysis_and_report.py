@@ -97,13 +97,26 @@ def build_report_df(info_dict, mode='min'):
     return df
 
 #from maciej
-def get_Wqb_value_AMBER(file_duck_dat):
+def get_Wqb_value(file_duck_dat, mode='amber'):
     f = open(file_duck_dat,'r')
     data = []
     for line in f:
         a = line.split()
-        data.append([float(a[0]), float(a[1]), float(a[2]), float(a[3])])
+        if mode == 'amber':
+            if len(a) != 4:
+                print(f'{file_duck_dat} has the wrong format for {mode} duck report' )
+                exit(1)
+            else:
+                data.append([float(a[0]), float(a[1]), float(a[2]), float(a[3])])
+        elif mode == 'openmm':
+            if len(a) != 10:
+                print(f'{file_duck_dat} has the wrong format for {mode} duck report' )
+                exit(1)
+            else:
+                data.append([float(a[1]), float(a[3]), float(a[5]), float(a[8])])
     f.close()
+    if len(data) == 0:
+        raise ValueError(f'{file_duck_dat} is empty.')
     data = np.array(data)
     Work = data[:,3]
     #split it into segments of 200 points 
@@ -149,49 +162,70 @@ def get_Wqb_value_AMBER(file_duck_dat):
     
     return Wqb_value, data, Wqb_min
 
-def get_Wqb_value_AMBER_all(prefix = 'DUCK', file = 'duck.dat', plot=False):
-    folder = []
-    for fol in os.listdir(os.getcwd()):
-        if fol.startswith(prefix):
-            folder.append(fol)
+def get_Wqb_value_Openmm_all(folder='duck_runs', pattern='smd_*.dat', plot=False):
+    wqb_values = []
     if plot: fig, ax = plt.subplots(figsize=(10,10))        
-    Wqb_values = []
-    for fol in folder:
-        if os.path.isfile(fol+'/'+file):
-            Wqb_data = get_Wqb_value_AMBER(fol+'/'+file)
-            Wqb_values.append((fol, Wqb_data[0]))
-            if plot: ax.plot(Wqb_data[1][:,0], Wqb_data[1][:,3]-Wqb_data[2])
+    for dat_file in glob.glob(os.path.join(folder, pattern)):
+        wqb_data = get_Wqb_value(dat_file, mode = 'openmm')
+        wqb_values.append((dat_file, wqb_data[0]))
+        if plot: ax.plot(wqb_data[1][:,0], wqb_data[1][:,3]-wqb_data[2])
     if plot:
         ax.set_xlabel('HB Distance ($\AA$)')
         ax.set_ylabel('Work ($kcal · mol^{-1}$)')
         fig.savefig('wqb_plot.png')
         plt.close(fig)
-    if len(Wqb_values):
-        wqb = min([x[1] for x in Wqb_values])
+    if len(wqb_values):
+        wqb = min([x[1] for x in wqb_values])
     else:
         wqb = 'Nan'
-    return wqb, Wqb_values
+    return wqb, wqb_values
+
+def get_Wqb_value_AMBER_all(prefix = 'DUCK', file = 'duck.dat', plot=False):
+    #adapted from maciej script
+    folder = []
+    for fol in os.listdir(os.getcwd()):
+        if fol.startswith(prefix):
+            folder.append(fol)
+    if plot: fig, ax = plt.subplots(figsize=(10,10))        
+    wqb_values = []
+    for fol in folder:
+        if os.path.isfile(os.path.joint(fol,file)):
+            wqb_data = get_Wqb_value(os.path.joint(fol,file))
+            wqb_values.append((fol, wqb_data[0]))
+            if plot: ax.plot(wqb_data[1][:,0], wqb_data[1][:,3]-wqb_data[2])
+    if plot:
+        ax.set_xlabel('HB Distance ($\AA$)')
+        ax.set_ylabel('Work ($kcal · mol^{-1}$)')
+        fig.savefig('wqb_plot.png')
+        plt.close(fig)
+    if len(wqb_values):
+        wqb = min([x[1] for x in wqb_values])
+    else:
+        wqb = 'Nan'
+    return wqb, wqb_values
 
 #jarzynksi functions
-def read_DUckdat(temp=None):
+def read_DUckdat(temp = 300, pattern='DUCK*/duck.dat', work_col=3, CV_col=0):
 	# read SMD reports from amber (4th line is the work)
 	# If temp not None, it only takes the specified temperature works
 	# its important in order to accurately calculate the jarzynski dG
 
-    work_values = {}
-    pattern = 'DUCK*/duck.dat' 
+    work_values, RC = {}, []
     for dat_file in glob.glob(pattern):
-        if temp == '325K' and temp not in dat_file:
+        # This check is because DUCK folders in amber duck version do not specify the temperature at 300K
+        if temp == 300 and '325' in dat_file:
             continue
-        elif temp == '300K' and '325K' in dat_file:
+        elif temp == 325 and '325' not in dat_file:
             continue
         with open(dat_file) as fh:
             work_values[dat_file] = []
             RC = []
             for line in fh:
                 line = line.split()
-                work_values[dat_file].append(float(line[3]))
-                RC.append(line[0])
+                work_values[dat_file].append(float(line[work_col]))
+                RC.append(str(round(float(line[CV_col]),3)))
+            if len(RC) == 0:
+                raise ValueError(f'{dat_file} is empty, please check what is happening.')
     return pd.DataFrame(work_values, index = RC)
 
 def normalize_by_series(df, index_threshold = 2500):
@@ -262,7 +296,7 @@ def plot_expavg_FD(raw_data_df, FD_df):
     # Plot expavg (Boltzmann avg) & FD (Fluctuation dissipation)	
     ax.plot(RC, FD_df['expavg'].values, 'g', linewidth=4)
     ax.plot(RC, FD_df['FD'].values,'r', linewidth=4)
-    ax.set_xticks(np.append(RC[::1000], RC[-1]))
+    ax.set_xticks(np.append(RC[::250], RC[-1]))
 
 
     ax.set_ylabel('Free Energy (kcal/mol)')
@@ -340,10 +374,12 @@ def get_real_jarzynski_from_bootstrapping(sample_dfs, save=None, splitting_point
 			f.write('\t'.join([str(x) for x in [avg,sd,sem_v]]))
 	return avg,sd,sem_v, max_values
 
-def do_jarzynski_analysis(temperatures = [300,325], index_threshold = 2500, sample_size = 20, samples=20, plot=True,):
+def do_jarzynski_analysis(temperatures = [300,325], index_threshold = 2500, sample_size = 20, samples=20, plot=True, mode='amber'):
     norm_datas, FD_datas = [],[]
     for T in temperatures:
-        WQB_df = read_DUckdat(temp=f'{T}K')
+        if mode == 'amber': pattern, work_col, CV_col = f'DUCK_*/duck.dat', 3, 0 # first col is HB distance and fourth is Work
+        elif mode == 'openmm': pattern, work_col, CV_col = f'duck_runs/smd_*_{str(T)}.dat', 8, 1 # second column is HB distance and ninth is Work
+        WQB_df = read_DUckdat(pattern=pattern, temp=T, work_col=work_col, CV_col=CV_col)
         norm_df = normalize_by_series(WQB_df, index_threshold=index_threshold)
         FD_df = get_expavg_FD_df(norm_df,T=T)
         norm_datas.append(norm_df)

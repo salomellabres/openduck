@@ -31,7 +31,7 @@ def args_sanitation(parser, modes):
                 if 'ionic_strength' in input_arguments: args.ionic_strength =  float(input_arguments['ionic_strength'])
                 if 'solvent_buffer_distance' in input_arguments: args.solvent_buffer_distance =  float(input_arguments['solvent_buffer_distance'])
                 if 'waters_to_retain' in input_arguments: args.waters_to_retain =  str(input_arguments['waters_to_retain'])
-                if 'num_smd_cycles' in input_arguments: args.smd_cycles =  int(input_arguments['num_smd_cycles'])
+                if 'smd_cycles' in input_arguments: args.smd_cycles =  int(input_arguments['smd_cycles'])
                 if 'md_length' in input_arguments: args.md_length =  float(input_arguments['md_length'])
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
@@ -45,7 +45,6 @@ def args_sanitation(parser, modes):
             # all good
             pass
     elif args.mode == 'from-equilibration':
-        print(args)
         if (args.yaml_input is None) and (args.equilibrated_system is None or args.pickle is None):
             modes.choices['OpenMM_from-equilibrated'].error('The input needs to be either the input yaml or specified in the command line system "pickle" and "equilibrated_system" from parametrization.')
         elif args.yaml_input:
@@ -57,7 +56,7 @@ def args_sanitation(parser, modes):
 
                 # overwrite the defaults from command line args
                 if 'gpu_id' in input_arguments: args.gpu_id =  input_arguments['gpu_id']
-                if 'num_smd_cycles' in input_arguments: args.smd_cycles =  int(input_arguments['num_smd_cycles'])
+                if 'smd_cycles' in input_arguments: args.smd_cycles =  int(input_arguments['smd_cycles'])
                 if 'md_length' in input_arguments: args.md_length =  float(input_arguments['md_length'])
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
@@ -98,6 +97,30 @@ def args_sanitation(parser, modes):
             modes.choices['OpenMM_prepare'].error('The parameters --ligand, --interaction and --receptor are required.')
         else:
             # all good
+            pass
+    elif args.mode == 'from-amber':
+        if (args.yaml_input is None) and (args.interaction is None or args.coordinates is None and args.topology is None):
+            modes.choices['OpenMM_from-amber'].error('The input needs to be either the input yaml or specified in the command line (topology, coordinates and interaction).')
+        elif args.yaml_input:
+            input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
+            if all(item in list(input_arguments.keys()) for item in ['topology', 'interaction', 'coordinates']):
+                #transfer all required items
+                args.topology = str(input_arguments['topology'])
+                args.coordinates = str(input_arguments['coordinates'])
+                args.interaction = str(input_arguments['interaction'])
+
+                # overwrite the defaults from command line args
+                if 'smd_cycles' in input_arguments: args.smd_cycles =  int(input_arguments['smd_cycles'])
+                if 'md_length' in input_arguments: args.md_length =  float(input_arguments['md_length'])
+                if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
+                if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
+                if 'gpu_id' in input_arguments: args.gpu_id =  input_arguments['gpu_id']
+            else:
+                modes.choices['OpenMM_from-amber'].error('You need to specify at least the amber topology and coordinate files and the interaction.')
+        elif (args.interaction is None or args.topology is None or args.coordinates is None):
+            modes.choices['OpenMM_from-amber'].error('The parameters --topology, --coordinates, --interaction are required')
+        else:
+            #all good
             pass
     elif args.mode == 'Amber-preparation':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -140,7 +163,10 @@ def args_sanitation(parser, modes):
     elif args.mode == 'Report':
         if args.output == 'stdout': args.output = sys.stdout # little trick to print
         if (args.iterations != 20 or args.subsample_size != 20) and args.data not in ('all', 'jarzynski'):
-            modes.choices['report'].error('Iterations and subsample size affect bootstrapping which is only performed when doing jarzynski analysis.') 
+            modes.choices['report'].error('Iterations and subsample size affect bootstrapping which is only performed when doing jarzynski analysis.')
+        if  args.format == 'openmm' and args.data in ('all', 'jarzynski') and args.step_threshold > 1250:
+            print('OpenMM duck output has 1250 report steps. The index_threshold to find the minima needs to be a >1250. It will be changed to 600.')
+            args.index_threshold == 600
     elif args.mode == 'Chunk':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
             modes.choices['chunk'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
@@ -238,6 +264,18 @@ def parse_input():
     equil.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
     equil.set_defaults(mode='from-equilibration')
 
+    openmm_prmtop = modes.add_parser('OpenMM_from-amber', help='OpenDuck openMM protocol starting from an amber topology and coordinates (prmtop and inpcrd).')
+    openmm_prmtop.set_defaults(mode='from-amber')
+    openmm_prmtop.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the openMM simulations from the equilibrated system.')
+    openmm_prmtop.add_argument('-c', '--coordinates', default=None, type=str, help='Amber input coordinates')
+    openmm_prmtop.add_argument('-t', '--topology', default=None, type=str, help='Amber input topology')
+    openmm_prmtop.add_argument('-i', '--interaction', default=None, type=str, help='Protein atom to use for ligand interaction.')
+    openmm_prmtop.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
+    openmm_prmtop.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
+    openmm_prmtop.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
+    openmm_prmtop.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
+    openmm_prmtop.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
+
     #Arguments for OPENMM_PREPARATION
     amber = modes.add_parser('AMBER_prepare', help='Preparation of systems, inputs and queue files for AMBER simulations')
     amber_main = amber.add_argument_group('Main arguments')
@@ -268,14 +306,15 @@ def parse_input():
     #Arguments for report
     report = modes.add_parser('report', help='Generate report for openduck results.')
     report.set_defaults(mode='Report')
-    report.add_argument('-p', '--pattern', type=str, help='Wildcard pattern to find folders with DUck data')
+    report.add_argument('-p', '--pattern', type=str, default='.', help='Wildcard pattern to find folders with DUck data')
     report.add_argument('-d', '--data', type=str, default='min', choices=('min', 'single', 'avg', 'jarzynski', 'all'), help='Mode to compile the report [min | single | avg | jarzynski | all]')
     report.add_argument('-o', '--output', default='stdout', help = 'Output file, default is printing report to stdout.')
     report.add_argument('-of', '--output-format', default='tbl', choices=('csv', 'sdf', 'tbl') , type=str, help='Output format, [csv | sdf | tbl].')
     report.add_argument('--plot', default=False, action='store_true', help='Plot work or energy values to file.')
     report.add_argument('-s', '--subsample-size', default=20, type=int, help='Subsample size for jarzynski bootstrapping.')
     report.add_argument('-i', '--iterations', default=20, type=int, help='Number of bootstrapping iterations for jarzynski analysis.')
-    report.add_argument('-t', '--step-threshold', default=2500, type=int, help='steps_treshold to find the minima')
+    report.add_argument('-t', '--step-threshold', default=2500, type=int, help='Steps_treshold to find the minima.')
+    report.add_argument('-f', '--format', type=str.lower, default='amber', choices=('amber', 'openmm'), help='Data where the results come from. Amber by default.')
 
     #Arguments for chunk
     chunk = modes.add_parser('chunk', help='Chunk a protein for Dynamic Undocking.')
@@ -296,10 +335,14 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
     from duck.steps.normal_md import perform_md
     from duck.steps.steered_md import run_steered_md
     from duck.utils.check_system import check_if_equlibrated
+    import filecmp
 
-    
-    shutil.copyfile(input_checkpoint, "equil.chk")
-    shutil.copyfile(pickle, "complex_system.pickle")
+    # Why is this shutil here? are the md/smd functions hardcoded to read this specific files?
+    # check if files are the same, as shutil complains if it is the case.
+    if not filecmp.cmp(input_checkpoint, 'equil.chk'):
+        shutil.copyfile(input_checkpoint, "equil.chk")
+    if not filecmp.cmp(pickle, "complex_system.pickle"):
+        shutil.copyfile(pickle, "complex_system.pickle")
 
     # Now do the MD
     # remember start_dist
@@ -479,7 +522,7 @@ def do_AMBER_preparation(args):
     queue.write_queue_file(kind=args.queue_template)
 
 def do_report(args):
-    from duck.utils.analysis_and_report import get_Wqb_value_AMBER_all, do_jarzynski_analysis, build_report_df, get_mols_and_format 
+    from duck.utils.analysis_and_report import get_Wqb_value_AMBER_all, get_Wqb_value_Openmm_all, do_jarzynski_analysis, build_report_df, get_mols_and_format 
     import glob
     #iterate_folders
     folders = glob.glob(args.pattern)
@@ -490,10 +533,13 @@ def do_report(args):
         currdir = os.getcwd()
         os.chdir(folder)
         if args.data in ('min', 'single', 'avg', 'all'):
-            wqb = get_Wqb_value_AMBER_all(prefix='DUCK', file='duck.dat', plot=args.plot)
+            if args.format == 'amber':
+                wqb = get_Wqb_value_AMBER_all(prefix='DUCK', file='duck.dat', plot=args.plot)
+            elif args.format == 'openmm':
+                wqb = get_Wqb_value_Openmm_all(folder='duck_runs', pattern='smd_*.dat', plot=args.plot)
             wqb_info[folder].extend(wqb)
         if args.data == 'jarzynski' or args.data == 'all':
-            expavg, sd, sem_v = do_jarzynski_analysis(index_treshold = args.step_threshold, sample_size=args.subsample_size, samples=args.iterations, plot=args.plot)
+            expavg, sd, sem_v = do_jarzynski_analysis(index_threshold = args.step_threshold, sample_size=args.subsample_size, samples=args.iterations, plot=args.plot, mode =args.format)
             wqb_info[folder].extend([expavg, sd, sem_v])
         os.chdir(currdir)
 
@@ -548,6 +594,10 @@ def main():
         do_OpenMM_preparation(args)
     elif args.mode == 'from-equilibration':
         do_openMM_from_equil(args)
+    elif args.mode == 'from-amber':
+        #WIP
+        print('Still in progress')
+        pass
     elif args.mode == 'Amber-preparation':
         do_AMBER_preparation(args)
     elif args.mode == 'Report':
