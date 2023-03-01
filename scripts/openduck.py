@@ -36,7 +36,7 @@ def args_sanitation(parser, modes):
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
-
+                if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
             else:
                 modes.choices['OpenMM_full-protocol'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -60,6 +60,8 @@ def args_sanitation(parser, modes):
                 if 'md_length' in input_arguments: args.md_length =  float(input_arguments['md_length'])
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
+                if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
+
             else:
                 modes.choices['OpenMM_from-equilibrated'].error('You need to specify at least "pickle" and "equilibrated_system" in the yaml file.')
         elif (args.pickle is None or args.equilibrated_system is None):
@@ -114,7 +116,9 @@ def args_sanitation(parser, modes):
                 if 'md_length' in input_arguments: args.md_length =  float(input_arguments['md_length'])
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
-                if 'gpu_id' in input_arguments: args.gpu_id =  input_arguments['gpu_id']
+                if 'gpu_id' in input_arguments: args.gpu_id =  int(input_arguments['gpu_id'])
+                if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
+
             else:
                 modes.choices['OpenMM_from-amber'].error('You need to specify at least the amber topology and coordinate files and the interaction.')
         elif (args.interaction is None or args.topology is None or args.coordinates is None):
@@ -249,6 +253,7 @@ def parse_input():
     prod.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
     prod.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     prod.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
+    prod.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations.')
     prod.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
     prod.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
     
@@ -259,6 +264,7 @@ def parse_input():
     equil.add_argument('-p', '--pickle', default=None, help='Pickle output from preparation.')
     equil.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     equil.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
+    equil.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations.')
     equil.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
     equil.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
     equil.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
@@ -272,6 +278,7 @@ def parse_input():
     openmm_prmtop.add_argument('-i', '--interaction', default=None, type=str, help='Protein atom to use for ligand interaction.')
     openmm_prmtop.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     openmm_prmtop.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
+    openmm_prmtop.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations.')
     openmm_prmtop.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
     openmm_prmtop.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
     openmm_prmtop.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
@@ -293,8 +300,8 @@ def parse_input():
     amber_prep.add_argument('-w', '--water-model', default='tip3p', type=str.lower, choices = ('tip3p', 'spce', 'tip4pew'), help='Water model to parametrize the solvent with.')
     amber_prep.add_argument('-q', '--queue-template', type=str, default = 'local', help='Write out a queue file from templates.')
     amber_prep.add_argument('-H','--HMR', action='store_true', help ='Perform Hydrogen Mass Repartition on the topology and use it for the input files')
-    amber_prep.add_argument('-n', '--smd-cycles', type=int, default=5, help='Ammount of SMD replicas to perform')
-    amber_prep.add_argument('-W', '--wqb-threshold', type=float, default=7.0, help='WQB threshold to stop the simulations')
+    amber_prep.add_argument('-n', '--smd-cycles', type=int, default=20, help='Ammount of SMD replicas to perform')
+    amber_prep.add_argument('-W', '--wqb-threshold', type=float, default=0, help='WQB threshold to stop the simulations')
     amber_prep.add_argument('-ff','--protein-forcefield', default='amber99sb', type=str.lower, choices=('amber99sb', 'amber14-all'), help='Protein forcefield to parametrize the chunked protein.')
     amber_prep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     amber_prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
@@ -331,10 +338,11 @@ def parse_input():
 
     return args, parser
 
-def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist, init_velocity, save_dir):
+def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist, init_velocity, save_dir, wqb_threshold=None):
     from duck.steps.normal_md import perform_md
     from duck.steps.steered_md import run_steered_md
     from duck.utils.check_system import check_if_equlibrated
+    from duck.utils.analysis_and_report import get_Wqb_value
     import filecmp
 
     # Why is this shutil here? are the md/smd functions hardcoded to read this specific files?
@@ -380,6 +388,11 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
             init_velocity=init_velocity,
             gpu_id=gpu_id,
         )
+        #check if wqb is higher or lower than threshold to continue
+        wqb, data, min_abs_work = get_Wqb_value(str(Path(save_dir, "smd_" + str(i) + "_300.dat")), mode='openmm')
+        if wqb_threshold is not None and wqb < wqb_threshold:
+            print(f'DUck replica {i}_300 yielded a wqb of {wqb}, which is lower that the wqb_threshold ({wqb_threshold}).\nStopping OpenDuck simulations.')
+            return wqb
         run_steered_md(
             325,
             str(Path(save_dir, "md_" + str(i) + ".chk")),
@@ -391,6 +404,11 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
             init_velocity=init_velocity,
             gpu_id=gpu_id,
         )
+        #check if wqb is higher or lower than threshold to continue
+        wqb, data, min_abs_work = get_Wqb_value(str(Path(save_dir, "smd_" + str(i) + "_325.dat")), mode='openmm')
+        if wqb_threshold is not None and wqb < wqb_threshold:
+            print(f'DUck replica {i}_325 yielded a wqb of {wqb}, which is lower that the wqb_threshold ({wqb_threshold}).\nStopping OpenDuck simulations.')
+            return wqb
 
 def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1'):
     from duck.steps.parametrize import prepare_system
@@ -468,7 +486,8 @@ def do_full_openMM_protocol(args):
                 gpu_id=args.gpu_id,
                 start_dist=args.init_distance,
                 init_velocity=args.init_velocities,
-                save_dir=save_dir)
+                save_dir=save_dir,
+                wqb_threshold=args.wqb_threshold)
 
 def do_openMM_from_equil(args):
     save_dir = Path('duck_runs')
@@ -481,7 +500,8 @@ def do_openMM_from_equil(args):
             gpu_id=args.gpu_id,
             start_dist=args.init_distance,
             init_velocity=args.init_velocities,
-            save_dir=save_dir)
+            save_dir=save_dir,
+            wqb_threshold=args.wqb_threshold)
 
 def do_AMBER_preparation(args):
     # adapted from duck_prepare_sys_for_amber.py and batch_duck_prepare_for_amber.py
