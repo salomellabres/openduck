@@ -129,7 +129,7 @@ def run_steered_md(
         keyInteraction_dist = np.linalg.norm(
             keyInteraction_pos[0] - keyInteraction_pos[1]
         )
-        print(keyInteraction_dist)
+        print(f'{keyInteraction_dist}\r', end='')
         # Updated system
         simulation.context.setParameter("x0", keyInteraction_pos[0][0])
         simulation.context.setParameter("y0", keyInteraction_pos[0][1])
