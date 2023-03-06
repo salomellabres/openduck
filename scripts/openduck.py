@@ -361,6 +361,7 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
         else:
             md_start = str(Path(save_dir, "md_" + str(i - 1) + ".chk"))
         log_file = str(Path(save_dir, "md_" + str(i) + ".csv"))
+        print(f'Simulating md_{str(i)}')
         perform_md(
             checkpoint_in_file=md_start,
             checkpoint_out_file=str(Path(save_dir, "md_" + str(i) + ".chk")),
@@ -376,7 +377,7 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
             sys.exit()
         # Now find the interaction and save to a file
 
-
+        print(f'Simulating smd_{str(i)}_300')
         run_steered_md(
             300,
             str(Path(save_dir, "md_" + str(i) + ".chk")),
@@ -393,6 +394,9 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
         if wqb_threshold is not None and wqb < wqb_threshold:
             print(f'DUck replica {i}_300 yielded a wqb of {wqb}, which is lower that the wqb_threshold ({wqb_threshold}).\nStopping OpenDuck simulations.')
             return wqb
+        else:
+            print(f'Wqb: {wqb}')
+        print(f'Simulating smd_{str(i)}_325')
         run_steered_md(
             325,
             str(Path(save_dir, "md_" + str(i) + ".chk")),
@@ -409,6 +413,8 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
         if wqb_threshold is not None and wqb < wqb_threshold:
             print(f'DUck replica {i}_325 yielded a wqb of {wqb}, which is lower that the wqb_threshold ({wqb_threshold}).\nStopping OpenDuck simulations.')
             return wqb
+        else:
+            print(f'Wqb: {wqb}')
 
 def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1'):
     from duck.steps.parametrize import prepare_system

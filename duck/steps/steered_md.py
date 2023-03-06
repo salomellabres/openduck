@@ -39,7 +39,7 @@ def run_steered_md(
     else:
         platform = mm.Platform_getPlatformByName("CPU")
     platformProperties["DeterministicForces"] = 'true'
-    print("loading pickle")
+    #print("loading pickle")
     pickle_in = open("complex_system.pickle", "rb")
     pkl = pickle.load(pickle_in)
     combined_pmd = pkl[0]
@@ -129,7 +129,8 @@ def run_steered_md(
         keyInteraction_dist = np.linalg.norm(
             keyInteraction_pos[0] - keyInteraction_pos[1]
         )
-        print(f'{keyInteraction_dist}\r', end='')
+        formated_dist = round(float(str(keyInteraction_dist).split()[0]),6)
+        print(f'{formated_dist} nm\r', end='')
         # Updated system
         simulation.context.setParameter("x0", keyInteraction_pos[0][0])
         simulation.context.setParameter("y0", keyInteraction_pos[0][1])
@@ -163,6 +164,7 @@ def run_steered_md(
     # Save state in PDB file
     positions = simulation.context.getState(getPositions=True).getPositions()
     app.PDBFile.writeFile(simulation.topology, positions, open(pdb_out_file, "w"))
+    print('')
 
 
 if __name__ == "__main__":

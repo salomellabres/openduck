@@ -22,7 +22,7 @@ def perform_md(
     if os.path.isfile(checkpoint_out_file):
         print(f'{checkpoint_out_file} is already calculated, skipping' )
         return
-    print("loading pickle")
+    #print("loading pickle")
     pickle_in = open("complex_system.pickle", "rb")
     pkl = pickle.load(pickle_in)
     combined_pmd = pkl[0]
@@ -92,6 +92,7 @@ def perform_md(
     simulation.reporters.append(app.DCDReporter(dcd_out_file, 2000))
 
     # Production
+
     simulation.step(sim_steps)
     # Save state in checkpoint file and save coordinates in PDB file
     state = simulation.context.getState(getPositions=True, getVelocities=True)
