@@ -23,6 +23,7 @@ def main():
     parser.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     parser.add_argument('-b','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
     parser.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
+    parser.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add hydrogens to carbon atoms.')
 
     args = parser.parse_args()
     
@@ -32,7 +33,7 @@ def main():
     # Parameterize the ligand
     prepare_system(args.ligand, args.chunk, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
                    hmr=args.HMR, small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
-                   box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength)
+                   box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength, fix_ligand_file = args.fix_ligand)
     # Now find the interaction and save to a file
     results = find_interaction(args.interaction, args.protein)
     print(results) # what happens to these?

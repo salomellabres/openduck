@@ -4,6 +4,7 @@ from simtk import unit
 import parmed, pkg_resources
 from simtk import openmm
 from pdbfixer import PDBFixer  # for solvating
+import os
 import sys
 import pickle
 from duck.utils.gen_system import generateSMIRNOFFStructureRDK, generateGAFFStructureRDK, generateEspalomaFFStructureRDK
@@ -22,7 +23,7 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
 
 
-def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1, waters_to_retain="waters_to_retain.pdb"):
+def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1, waters_to_retain="waters_to_retain.pdb", fix_ligand_file=False):
 
     #Do not put ESPALOMA yet, as it is not on the conda release of openmmforcefields yet, The function is already prepared
     #FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK, 'ESPALOMA': generateEspalomaFFStructureRDK}
@@ -37,6 +38,10 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
         water_ff_str = 'tip3p.xml'
 
     print("Preparing ligand")
+    if fix_ligand_file:
+        fixed_ligand_file = ligand_file.replace(os.path.basename(ligand_file), f"fixed_{os.path.basename(ligand_file)}")
+        fix_ligand(ligand_file, fixed_ligand_file)
+        ligand_file = fixed_ligand_file
     ligand_pmd = FF_generators[small_molecule_ff.upper()](ligand_file)
     print("Fixing protein")
     protein = parmed.load_file(protein_file)
@@ -126,6 +131,23 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
     pickle.dump([combined_pmd], pickle_out)
     pickle_out.close()
     return [combined_pmd]
+
+def fix_ligand(ligand_file, fixed_ligand_file):
+    """
+    Add explicit hydrogens to carbon atoms and ensure tetravalent nitrogens are assigned a +1 charge
+    """
+    with Chem.SDMolSupplier(ligand_file, sanitize=False) as supplier:
+        mol = supplier[0]
+    chem_problems = Chem.DetectChemistryProblems(mol)
+    for chem_problem in chem_problems:
+        if chem_problem.GetType() == 'AtomValenceException':
+            atom = mol.GetAtomWithIdx(chem_problem.GetAtomIdx())
+            if atom.GetSymbol() == 'N' and atom.GetFormalCharge() == 0 and atom.GetExplicitValence() == 4:
+                atom.SetFormalCharge(1)
+    Chem.SanitizeMol(mol)
+    fixed_mol = Chem.AddHs(mol, addCoords=True, onlyOnAtoms=[atom.GetIdx() for atom in mol.GetAtoms() if atom.GetSymbol() == 'C'])
+    sdwriter = Chem.SDWriter(fixed_ligand_file)
+    sdwriter.write(fixed_mol)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
