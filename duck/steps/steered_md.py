@@ -22,6 +22,23 @@ def run_steered_md(
     init_velocity=0.00001,
     gpu_id=0,
 ):
+    '''
+    Run steered molecular dynamics (SMD) simulation in openMM, pulling a ligand along its main interaction with the protein, and write the results to output files.
+    The SMD simulation uses a custom external force to apply a harmonic restraint on a chunk of atoms in the system, and pulls the restrained
+    atoms along a straight line between two points with a constant velocity.
+
+    Args:
+        temperature (Quantity): The temperature to perform the simulation at.
+        checkpoint_in_file (str): The file path of the input checkpoint file.
+        csv_out_file (str): The file path of the output CSV file to write simulation data to.
+        dat_out_file (str): The file path of the output text file to write simulation data to.
+        pdb_out_file (str): The file path of the output PDB file to write the final state of the simulation to.
+        startdist (float): The starting distance of the restrained atoms from their original positions, in angstroms.
+        spring_constant (float, optional): The spring constant of the harmonic restraint applied to the restrained atoms. Default is 50.
+        force_constant_chunk (float, optional): The force constant of the restraint applied to the chunk of atoms. Default is 0.1.
+        init_velocity (float, optional): The initial velocity of the restrained atoms, in angstroms per picosecond. Default is 0.00001.
+        gpu_id (int, optional): The ID of the GPU to use for the simulation. If not provided, the simulation will run on the CPU.
+    '''
     if os.path.isfile(pdb_out_file):
         print(f'{pdb_out_file} is already calculated, skipping' )
         return

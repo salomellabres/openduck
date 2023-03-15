@@ -24,6 +24,8 @@ def eprint(*args, **kwargs):
 
 #wqb report functions
 def get_mols_and_format(data_df, mode='min'):
+    '''Writeout an rdkit mol object with the specified WQB or Jarzynski information depending on the mode.
+    It uses the ligand.pdb file from each DUck directory.'''
     mols = []
     for i, row in data_df.iterrows():
         ligand_file = os.path.join(row['System'], 'ligand.pdb')
@@ -60,6 +62,17 @@ def get_mols_and_format(data_df, mode='min'):
     return mols
 
 def flatten_wqb_dict(info_dict):
+    """
+    Flatten a dictionary of Wqb values into a more easily digestible format.
+
+    Parameters:
+    info_dict (dict): A dictionary with keys as system names and values as tuples containing
+    the system name and a list of tuples, where each tuple contains a residue name and its Wqb value.
+
+    Returns:
+    dict: A dictionary where the keys are 'System' and the residue names, and the values are lists
+    of the corresponding Wqb values for each system.
+    """
     values = list(info_dict.values())
     k = ['System', *[x[0] for x in values[0][1]]]
     v = [list(info_dict.keys())]
@@ -70,6 +83,7 @@ def flatten_wqb_dict(info_dict):
     return {ks: vs for ks, vs in zip(k, v)}
 
 def build_report_df(info_dict, mode='min'):
+    '''Generate a report DataFrame from the dictionary with the specified WQB or Jarzynski information depending on the mode'''
     if mode == 'min':
         df = pd.DataFrame({'System': list(info_dict.keys()), 'WQB':[wqb[0] for wqb in info_dict.values()]})
     elif mode == 'single':
@@ -103,6 +117,17 @@ def build_report_df(info_dict, mode='min'):
 
 #from maciej
 def get_Wqb_value(file_duck_dat, mode='amber'):
+    """Calculates the Wqb value from the DUck_work report file.
+
+    Args:
+        file_duck_dat (str): The path to the duck report file.
+        mode (str, optional): The format of the duck report file. Defaults to 'amber'.
+
+    Returns a tupple with:
+        float: The Wqb value calculated from the duck report.
+        numpy.ndarray: The entire contents of the duck report file as a numpy array.
+        float: The minimum value of the Work column in the duck report, used in the Wqb calculation.
+    """
     f = open(file_duck_dat,'r')
     data = []
     for line in f:
@@ -168,6 +193,9 @@ def get_Wqb_value(file_duck_dat, mode='amber'):
     return Wqb_value, data, Wqb_min
 
 def get_Wqb_value_Openmm_all(folder='duck_runs', pattern='smd_*.dat', plot=False):
+    '''
+    Obtain the Wqb for all replicas in a openduck run from an openMM simulation.
+    '''
     wqb_values = []
     if plot: fig, ax = plt.subplots(figsize=(10,10))        
     for dat_file in glob.glob(os.path.join(folder, pattern)):
@@ -186,6 +214,9 @@ def get_Wqb_value_Openmm_all(folder='duck_runs', pattern='smd_*.dat', plot=False
     return wqb, wqb_values
 
 def get_Wqb_value_AMBER_all(prefix = 'DUCK', file = 'duck.dat', plot=False):
+    '''
+    Obtain the Wqb for all replicas in dynamic undocking simulation in AMBER.
+    '''
     #adapted from maciej script
     folder = []
     for fol in os.listdir(os.getcwd()):
@@ -309,6 +340,7 @@ def plot_expavg_FD(raw_data_df, FD_df):
     fig.savefig('Wqb_plot_jarzynski.png') 
 
 def shapiro_test(work_df):
+    #Perform a shapiro-wilk test to assess normality of the work values
 	fig, ax = plt.subplots()
 	#values = work_df.tail(1).values[0]
 	values = np.array([work_df[coll].max() for coll in work_df.columns]) # get the real maximum for the shapiro, as it will be the one used
@@ -324,8 +356,22 @@ def shapiro_test(work_df):
 		return False
 
 def bootstrap_df(norm_data_list, sample_size = 20, samples=20, plot=True, temps=[300, 325]):
-	# Sample by bootstrapping the works in order to see the convergence of jarzynski.
-	# Each temperature is sampled separatedly and then merged when the jarzynski is already calculated.
+    """
+    Perform bootstrap sampling of the normalized work dataframes to estimate the distribution of the Jarzynski free energy
+    estimate. Each temperature is sampled separatedly and then merged when the jarzynski is already calculated.
+
+    Args:
+    norm_data_list: list of pandas.DataFrame, each dataframe has the normalized work values for each CV bin at a given temperature
+    sample_size: int, the number of columns (work samples) to sample from each CV bin dataframe in each bootstrap iteration
+    samples: int, the number of bootstrap iterations to perform for each temperature
+    plot: bool, whether to plot the bootstrapped Jarzynski free energy distribution
+    temps: list of ints, the temperatures at which to perform the bootstrapping
+
+    Returns:
+    flat_df: pandas.DataFrame, a flat dataframe of bootstrapped Jarzynski free energy estimates and the corresponding CV value 
+    sample_dfs: list of pandas.DataFrame, a list of the bootstrapped samples for each temperature, containing the work values 
+                for each CV bin in each bootstrap iteration
+"""
 	sample_dfs = []
 	for temp, norm_df in zip(temps, norm_data_list):
 		for i in range(samples):
@@ -359,6 +405,7 @@ def get_stats_from_bootstrapping(flat_df, CVs):
 	return stats_df
 
 def average_dataframes(dataf1, dataf2):
+    '''Return the average dataframe of two dataframes. Used as the average dataframe for the Fluctuation dissipation dataframe at the two different temperatures.'''
 	new_df = pd.DataFrame(index=dataf1.index, columns=dataf1.columns)
 	for i,r in dataf1.iterrows():
 		for col,v300 in r.items():
@@ -380,6 +427,20 @@ def get_real_jarzynski_from_bootstrapping(sample_dfs, save=None, splitting_point
 	return avg,sd,sem_v, max_values
 
 def do_jarzynski_analysis(temperatures = [300,325], index_threshold = 2500, sample_size = 20, samples=20, plot=True, mode='amber'):
+    """
+    Performs the Jarzynski analysis on a set of SMD data at different temperatures. To assess the significance of the values obtained, bootstrapping is performed.
+
+    Args:
+        temperatures (list, optional): A list of temperatures (in Kelvin) at which the simulations were performed. Defaults to [300,325].
+        index_threshold (int, optional): The index at which the work data is truncated. Defaults to 2500.
+        sample_size (int, optional): The size of each bootstrap sample. Defaults to 20.
+        samples (int, optional): The number of bootstrap samples to take. Defaults to 20.
+        plot (bool, optional): Whether to generate plots or not. Defaults to True.
+        mode (str, optional): The simulation software used (`amber` or `openmm`). Defaults to 'amber'.
+
+    Returns:
+        tuple: A tuple containing the exponential average, standard deviation, and standard error of the mean of the Jarzynski free energy.
+    """
     norm_datas, FD_datas = [],[]
     for T in temperatures:
         if mode == 'amber': pattern, work_col, CV_col = f'DUCK_*/duck.dat', 3, 0 # first col is HB distance and fourth is Work

@@ -6,6 +6,9 @@ from duck.utils.cal_ints import find_atom
 
 
 def return_tleap(prot_protein_chunk, out_save, disulfides=[]):
+    '''
+    Generate the tleap input function for disulfite bonds
+    '''
     param_f_path = pkg_resources.resource_filename(
         "duck", "parameters/tleap/leaprc.ff14SB.redq"
     )
@@ -31,7 +34,9 @@ quit"""
 
 
 def do_tleap(prot_protein_chunk, out_save, disulfides=[]):
-    # Now do tleap
+    '''
+    Launch tleap from ambertools
+    '''
     out_f = open("run.tleap", "w")
     out_f.write(return_tleap(prot_protein_chunk, out_save, disulfides))
     out_f.close()
@@ -48,6 +53,18 @@ def add_cap(x, atom_set):
 
 
 def find_neighbour_residues(residues):
+    """
+    Given a list of residues, returns information about the neighboring residues and atoms in the molecule.
+
+    Args:
+        residues (list of Residue objects): a list of residues in the molecule
+
+    Returns:
+        A tuple of three elements:
+        - A dictionary where each residue in the input list is a key, and the corresponding value is a set of all residues that share a bond with at least one atom in that residue.
+        - A dictionary where each residue in the input list is a key, and the corresponding value is a set of all residues that share a bond with at least one atom in a residue that shares a bond with at least one atom in the key residue.
+        - A set of all atoms that are within 3 Angstroms of any atom in any residue in the input list.
+    """
     single_joins = {}
     double_joins = {}
     atom_set = set()
@@ -94,6 +111,18 @@ def find_neighbour_residues(residues):
 
 
 def find_neighbours(residues):
+    """
+    Given a set of residues, returns a all residues that share a bond with at least one atom in any of the input residues,
+    as well as a set of all atoms that are within 3 Angstroms of any atom in any of the input residues.
+
+    Args:
+        residues (set of Residue objects): a set of residues in the molecule
+
+    Returns:
+        A tuple of two elements:
+        - A set of all residues that share a bond with at least one atom in any of the input residues, including residues that are connected indirectly via a second-degree bond.
+        - A set of all atoms that are within 3 Angstroms of any atom in any of the input residues.
+    """
     single_joins, double_joins, atom_set = find_neighbour_residues(residues)
     new_residues = set()
     for resid_one in single_joins:
@@ -116,6 +145,21 @@ def find_neighbours(residues):
 
 
 def convert_to_ace_nme(subset):
+    """
+    Given a subset of a molecule, converts some residues to ACE or NME, depending on their atom types and names. Specifically:
+    - If a residue has exactly three atoms (CA, C, and O) with these names, its name is changed to ACE and its CA atom is renamed to CH3.
+    - If a residue has exactly three atoms (CA, CD, and N) with these names, its name is changed to NME, its CA atom is renamed to CH3, and its CD atom is removed from the molecule.
+    - If a residue has exactly two atoms (CA and N) with these names, its name is changed to NME and its CA atom is renamed to CH3.
+    - If a residue has exactly two atoms (CB and SG) with these names, it is removed from the molecule.
+    
+    Any atoms or residues that are removed during this process are excluded from the output subset.
+
+    Args:
+        subset (PDB subset): a subset of a PDB molecule, as returned by the `pandasPdb.subset()` method.
+
+    Returns:
+        A modified version of the input subset, where some residues may have been renamed to ACE or NME, and some atoms or residues may have been removed.
+    """
     remove_res_ids = []
     remove_atom_ids = []
     for residue in subset.residues:
@@ -149,6 +193,17 @@ def convert_to_ace_nme(subset):
 
 
 def remove_prot_buffers_alt_locs(prot_file):
+    """
+    Cleans up a protein structure PDB file by removing hydrogen atoms, solvents, and buffers. 
+    Writes the modified protein structure to a new PDB file with a consistent alternate location convention. 
+
+    Args:
+        prot_file (str): Path to the protein structure PDB file.
+
+    Returns:
+        str: Path to the new PDB file with the cleaned-up protein structure.
+    """
+
     output_file = "no_buffer_altlocs.pdb"
     solvents = ["NA", "CL", "SO4", "EDO", "FMT", "P04", "DMS", "EPE"]
     # Remove hydrogens and solvents and buffers
@@ -160,6 +215,15 @@ def remove_prot_buffers_alt_locs(prot_file):
 
 
 def find_disulfides(input_file, threshold=6.2):
+    '''Given a PDB file, find the cysteine residues to build disulfite bonds.
+
+    Args:
+    input_file (str): Path to the protein structure PDB file.
+    threshold (float): Distance threshold to define interacting cysteines
+
+    Returns:
+        list: List of tupples for the two residue numbers in each disulfite bond detected.
+    '''
     structure = parmed.load_file(input_file)
     sulfurs = [x for x in structure.atoms if x.residue.name == "CYS" and x.name == "SG"]
     #sulfurs = [x for x in structure.atoms if (x.residue.name == "CYS" or x.residue.name == "CYX") and x.name == "SG"]
@@ -178,6 +242,9 @@ def find_disulfides(input_file, threshold=6.2):
 
 
 def find_res_idx(protein, chain, res_name, res_num):
+    '''
+    Given a protein object, a chain, the residue name and number, return the atom index.
+    '''
     for residue in protein.residues:
         if residue.chain == chain:
             if residue.name == res_name:
@@ -244,6 +311,20 @@ def add_ter_records(input_file, output_file):
     return [output_file]
 
 def duck_chunk(prot_file, mol_file, interaction, cutoff, output_name = 'protein_out.pdb', ignore_buffers=False):
+    """
+    Performs chunking of a protein structure in the presence of a small molecule within a cutoff radius.
+
+    Args:
+        prot_file (str): Path to the protein structure PDB file.
+        mol_file (str): Path to the small molecule file.
+        interaction (str): Name of the interaction between the small molecule and the protein.
+        cutoff (float): Cutoff distance (in Angstroms) for chunking the small molecule into the protein.
+        output_name (str, optional): Name of the output protein PDB file after chunking and protonation. Defaults to 'protein_out.pdb'.
+        ignore_buffers (bool, optional): Whether to ignore buffers and alternative locations in the protein PDB file. Defaults to False.
+
+    Returns:
+        str: Path to the output protein PDB file after chunking and protonation.
+    """
     orig_file = prot_file
 
     chunk_protein_prot = f'protonated_{output_name}'

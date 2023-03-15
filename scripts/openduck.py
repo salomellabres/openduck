@@ -7,6 +7,8 @@ import os
 import yaml
 
 def args_sanitation(parser, modes):
+    '''Sanitize the parser to allow yaml or command line inputs with a proper formating for the rest of the script to work
+    '''
     args = parser.parse_args()
     # check if everything is ok
     if args.mode == 'full-protocol':
@@ -224,6 +226,7 @@ def parse_input():
     openmm_preprep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     openmm_preprep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
     openmm_preprep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
+    openmm_preprep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add hydrogens to carbon atoms.')
     openmm_prepeq = openmm_prep.add_argument_group('Equilibration arguments')
     openmm_prepeq.add_argument('--do-equilibrate', action='store_true', help='Perform equilibration after preparing system.')
     openmm_prepeq.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
@@ -249,6 +252,7 @@ def parse_input():
     prep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M')
     prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
     prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
+    prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add hydrogens to carbon atoms.')
     prod = full.add_argument_group('MD/SMD Production arguments')
     prod.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
     prod.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
@@ -309,6 +313,7 @@ def parse_input():
     amber_prep.add_argument('--seed', default='-1', type=str, help='Specify seed for amber inputs.')
     amber_prep.add_argument('-B', '--batch', default=False, action='store_true', help='Batch processing for multi-ligand sdf')
     amber_prep.add_argument('-t', '--threads', default=1, type=int, help='Define number of cpus for batch processing.')
+    amber_prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add hydrogens to carbon atoms.')
 
     #Arguments for report
     report = modes.add_parser('report', help='Generate report for openduck results.')
@@ -339,6 +344,23 @@ def parse_input():
     return args, parser
 
 def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist, init_velocity, save_dir, wqb_threshold=None):
+    """
+    Run molecular dynamics and steered molecular dynamics simulations on a system specified by an input checkpoint and a pickle file.
+    
+    Args: 
+        input_checkpoint (str): The path to the input checkpoint file.
+        pickle (str): The path to the pickle file.
+        num_runs (int): The number of runs to perform.
+        md_len (float): The length of each MD run in picoseconds.
+        gpu_id (int): The ID of the GPU to use.
+        start_dist (float): The starting distance for the steered MD simulations.
+        init_velocity (float): The initial velocity for the steered MD simulations.
+        save_dir (str): The directory to save the output files.
+        wqb_threshold (float): An optional threshold for the work required to break a bond. If specified and the work obtained is lower than the threshold, the function will terminate and return the wqb. Default is None.
+    
+    Returns:
+       If the `wqb_threshold` is reached, the function returns the `wqb` value. Otherwise, the function returns None.
+    """
     from duck.steps.normal_md import perform_md
     from duck.steps.steered_md import run_steered_md
     from duck.utils.check_system import check_if_equlibrated
@@ -416,14 +438,34 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
         else:
             print(f'Wqb: {wqb}')
 
-def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1'):
+def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1', fix_ligand_file=False):
+    '''
+    Prepares the system for Amber simulation by parameterizing the ligand and finding the specified interaction
+    between the ligand and protein. The resulting complex is saved to a pickle file, 'complex_system.pickle', and
+    the amber inputs are written for the specified queue system.
+
+    Args:
+        ligand_file (str): Path to the ligand file in .mol2 or .pdb format.
+        protein_file (str): Path to the protein-receptor file in .pdb format.
+        chunk_file (str): Path to the chunk file in .pdb format.
+        interaction (str): String specifying the receptor atom that forms the main interaction with the ligand.
+        HMR (bool): Whether or not to use hydrogen mass repartitioning (HMR) during parameterization.
+        small_molecule_forcefield (str, optional): Force field to use for ligand parameterization. Default is 'SMIRNOFF'.
+        water_ff_str (str, optional): Force field to use for water molecules. Default is 'tip3p.xml'.
+        forcefield_str (str, optional): Force field to use for protein parameterization. Default is 'amber99sb.xml'.
+        ionic_strength (float, optional): Ionic strength of the system in M. Default is 0.1 M.
+        box_buffer_distance (float, optional): Distance in Angstroms to buffer the protein-ligand complex from the edges of the simulation box. Default is 10.
+        waters_to_retain (str, optional): Path to the file containing the water molecules to retain during simulation. Default is "waters_to_retain.pdb".
+        seed (str, optional): Seed value for random number generation during parameterization. Default is '-1'.
+        fix_ligand_file (bool, optional): Whether or not to fix the ligand file during parameterization. Default is False.
+    '''
     from duck.steps.parametrize import prepare_system
     from duck.utils.cal_ints import find_interaction
     from duck.utils.amber_inputs import Amber_templates
     # Parameterize the ligand
     prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str,
                    hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str,
-                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength, waters_to_retain="waters_to_retain.pdb")
+                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength, waters_to_retain=waters_to_retain, fix_ligand_file=fix_ligand_file)
     
     # Now find the interaction and save to a file
     results = find_interaction(interaction, protein_file)
@@ -438,7 +480,10 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     amber = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed)
     amber.write_all_inputs()
 
-def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1'):
+def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False):
+    '''
+    Generate the folder for a ligand preparation and prepare such ligand.
+    '''
     from duck.utils.amber_inputs import write_string_to_file
     from contextlib import redirect_stdout,redirect_stderr
 
@@ -462,14 +507,16 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
                                   forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
-                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed)
+                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand)
 
     #os.chdir(f'..')
     return(f'Lig_target_{lig_indx} prepared correctly')
 
 #### main functions
 def do_full_openMM_protocol(args):
-    # adapted from run_full_duck_pipeline.py
+    '''
+    Perform full openduck in openMM protocol following old run_full_duck_pipeline.py script
+    '''
     args.do_equilibrate = True
     do_OpenMM_preparation(args)
 
@@ -496,6 +543,9 @@ def do_full_openMM_protocol(args):
                 wqb_threshold=args.wqb_threshold)
 
 def do_openMM_from_equil(args):
+    '''
+    Perform openduck from equilibrated chk in openMM following old run_from_eq.py script
+    '''
     save_dir = Path('duck_runs')
     if not save_dir.exists(): save_dir.mkdir()
     #only need to do production
@@ -510,6 +560,9 @@ def do_openMM_from_equil(args):
             wqb_threshold=args.wqb_threshold)
 
 def do_AMBER_preparation(args):
+    '''
+    Prepare the protein-ligand complex for openDuck protocol with the specified arguments and generate the Amber input files and queque files.
+    '''
     # adapted from duck_prepare_sys_for_amber.py and batch_duck_prepare_for_amber.py
     from duck.utils.amber_inputs import Queue_templates
      
@@ -543,11 +596,15 @@ def do_AMBER_preparation(args):
         prepare_sys_for_amber(args.ligand, args.receptor, chunk_file, args.interaction, args.HMR, 
         small_molecule_forcefield=args.small_molecule_forcefield, water_ff_str = args.water_model,
         forcefield_str=f'{args.protein_forcefield}.xml', ionic_strength = args.ionic_strength,
-        box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed)
+        box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed, fix_ligand_file=args.fix_ligand)
         queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, hmr=args.HMR)
     queue.write_queue_file(kind=args.queue_template)
 
 def do_report(args):
+    '''
+    Generate a report from the Dynamic Undocking output. The DUck folders are looked upon the args.pattern.
+    The formating input depends on the args.format (either 'openmm' or 'amber'), and the output generated depends on the args.data argument (min, single, avg, jarzynski or all).
+    '''
     from duck.utils.analysis_and_report import get_Wqb_value_AMBER_all, get_Wqb_value_Openmm_all, do_jarzynski_analysis, build_report_df, get_mols_and_format 
     import glob
     #iterate_folders
@@ -581,6 +638,9 @@ def do_report(args):
             [w.write(mol) for mol in mols]
 
 def do_OpenMM_preparation(args):
+    '''
+    Prepare the protein-ligand complex from the parsed arguments and perform equilibration using openMM
+    '''
     from duck.utils.check_system import check_if_equlibrated
     from duck.steps.equlibrate import do_equlibrate
     from duck.steps.parametrize import prepare_system
