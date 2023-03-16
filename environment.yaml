@@ -1,4 +1,4 @@
-name: openduck_latest
+name: openduck
 channels:
   - conda-forge
   - defaults

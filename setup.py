@@ -88,9 +88,6 @@ setup(
     entry_points={
         "console_scripts": [
             "openduck=scripts.openduck:main",
-            "getWqbValues=scripts.getWqbValues:main",
-            "jarzynski=scripts.jarzynski:main",
-            "duck_report=scripts.duck_report:main",
-        ] # TODO: add full set of scripts when known
+        ]
     },
 )
