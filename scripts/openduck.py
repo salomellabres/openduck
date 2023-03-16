@@ -280,6 +280,7 @@ def parse_input():
     openmm_prmtop.add_argument('-c', '--coordinates', default=None, type=str, help='Amber input coordinates')
     openmm_prmtop.add_argument('-t', '--topology', default=None, type=str, help='Amber input topology')
     openmm_prmtop.add_argument('-i', '--interaction', default=None, type=str, help='Protein atom to use for ligand interaction.')
+    openmm_prmtop.add_argument('-r', '--receptor', type=str, default = None, help='Receptor .mol2 file')
     openmm_prmtop.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     openmm_prmtop.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
     openmm_prmtop.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations.')
@@ -522,18 +523,18 @@ def do_full_openMM_protocol(args):
 
     # set up phase, I don't know why are the names changed here. Might be better to ommit it
     pickle_path = Path('complex_system.pickle')
-    #new_pickle_path = Path('cs.pickle')
-    #pickle_path.rename(new_pickle_path)
+    new_pickle_path = Path('cs.pickle')
+    pickle_path.rename(new_pickle_path)
     equil_path = Path('equil.chk')
-    #new_equil_path = Path('eql.chk')
-    #equil_path.rename(new_equil_path)
-    #print('checkpoint_path', equil_path)
+    new_equil_path = Path('eql.chk')
+    equil_path.rename(new_equil_path)
+    print('checkpoint_path', equil_path)
     save_dir = Path('duck_runs')
     if not save_dir.exists(): save_dir.mkdir()
 
     # Now production
-    duck_smd_runs(input_checkpoint=equil_path,
-                pickle=pickle_path,
+    duck_smd_runs(input_checkpoint=new_equil_path,
+                pickle=new_pickle_path,
                 num_runs=args.smd_cycles,
                 md_len=args.md_length,
                 gpu_id=args.gpu_id,
@@ -558,6 +559,40 @@ def do_openMM_from_equil(args):
             init_velocity=args.init_velocities,
             save_dir=save_dir,
             wqb_threshold=args.wqb_threshold)
+    
+def do_openMM_from_amber(args):
+    '''
+    Perform openduck from an amber topology. Extracted from the old 'from_amber_input.py'
+    '''
+    from duck.steps import equilibrate_from_amber_prep
+    save_dir = Path('duck_runs')
+    if not save_dir.exists(): save_dir.mkdir()
+
+    equilibrate_from_amber_prep(interaction=args.interaction,
+                                prmtop_file=args.topology,
+                                inpcrd_file=args.coordinates,
+                                chunk=args.receptor,
+                                gpu_id=args.gpu_id,
+                                force_constant_eq=1.0)
+
+    pickle_path = Path('complex_system.pickle')
+    new_pickle_path = Path('cs.pickle')
+    pickle_path.rename(new_pickle_path)
+
+    equil_path = Path('equil.chk')
+    new_equil_path = Path('eql.chk')
+    equil_path.rename(new_equil_path)
+    print('checkpoint_path', equil_path)
+
+    duck_smd_runs(input_checkpoint=new_equil_path,
+                  pickle=new_pickle_path,
+                  num_runs=args.smd_cycles,
+                  md_len=args.md_len,
+                  gpu_id=args.gpu_id,
+                  start_dist=args.init_distance,
+                  init_velocity=args.init_velocity,
+                  save_dir=save_dir,
+                  wqb_threshold=args.wqb_threhold)
 
 def do_AMBER_preparation(args):
     '''
@@ -654,7 +689,7 @@ def do_OpenMM_preparation(args):
     # prepare system
     prepare_system(args.ligand, chunked_file, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
             small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
-            box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength)
+            box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength, fix_ligand_file=args.fix_ligand)
     results = find_interaction(args.interaction, args.receptor)
     with open('complex_system.pickle', 'rb') as f:
         p = pickle.load(f) + results
@@ -682,8 +717,8 @@ def main():
         do_openMM_from_equil(args)
     elif args.mode == 'from-amber':
         #WIP
+        do_openMM_from_amber(args)
         print('Still in progress')
-        pass
     elif args.mode == 'Amber-preparation':
         do_AMBER_preparation(args)
     elif args.mode == 'Report':

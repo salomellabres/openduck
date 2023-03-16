@@ -32,7 +32,6 @@ savepdb mol """
 quit"""
     )
 
-
 def do_tleap(prot_protein_chunk, out_save, disulfides=[]):
     '''
     Launch tleap from ambertools
@@ -42,7 +41,6 @@ def do_tleap(prot_protein_chunk, out_save, disulfides=[]):
     out_f.close()
     os.system("tleap -f run.tleap > chunk_leap.log")
 
-
 def add_cap(x, atom_set):
     # Add the cap
     atom_set.add(x.idx)
@@ -50,7 +48,6 @@ def add_cap(x, atom_set):
     for y in x.bond_partners:
         atom_set.add(y.idx)
     return atom_set
-
 
 def find_neighbour_residues(residues):
     """
@@ -109,7 +106,6 @@ def find_neighbour_residues(residues):
         double_joins[resid] = double_res_set
     return single_joins, double_joins, atom_set
 
-
 def find_neighbours(residues):
     """
     Given a set of residues, returns a all residues that share a bond with at least one atom in any of the input residues,
@@ -142,7 +138,6 @@ def find_neighbours(residues):
                 residues.add(new_res)
                 new_residues.add(new_res)
     return new_residues, atom_set
-
 
 def convert_to_ace_nme(subset):
     """
@@ -191,7 +186,6 @@ def convert_to_ace_nme(subset):
         subset = subset["!(:" + ",".join(remove_res_ids) + ")"]
     return subset
 
-
 def remove_prot_buffers_alt_locs(prot_file):
     """
     Cleans up a protein structure PDB file by removing hydrogen atoms, solvents, and buffers. 
@@ -212,7 +206,6 @@ def remove_prot_buffers_alt_locs(prot_file):
     ]
     protein.write_pdb(output_file, altlocs="first")
     return output_file
-
 
 def find_disulfides(input_file, threshold=6.2):
     '''Given a PDB file, find the cysteine residues to build disulfite bonds.
@@ -240,7 +233,6 @@ def find_disulfides(input_file, threshold=6.2):
     structure.write_pdb(input_file)
     return disulfides
 
-
 def find_res_idx(protein, chain, res_name, res_num):
     '''
     Given a protein object, a chain, the residue name and number, return the atom index.
@@ -251,7 +243,6 @@ def find_res_idx(protein, chain, res_name, res_num):
                 if residue.number == res_num:
                     return residue.idx + 1
 
-
 def chunk_with_amber(
     mol_file="MURD-x0349.mol",
     prot_file="MURD-x0349_apo.pdb",
@@ -260,6 +251,19 @@ def chunk_with_amber(
     cutoff=9.0,
     orig_prot="MURD-x0349_apo.pdb",
 ):
+    '''
+    Chunk the protein into a smaller subset based on a cutoff radius around the given interaction.
+
+    Args:
+        mol_file (str): Path to the .mol file containing the ligand molecule.
+        prot_file (str): Path to the .pdb file containing the protein structure.
+        interaction (str): Interaction to consider for chunking, in the format of "chain_residue_atom".
+        out_save (str): Path to save the output .pdb file.
+        cutoff (float): Cutoff distance (in angstroms) for selecting atoms in the protein.
+        orig_prot (str): Path to the original .pdb file used to generate the protein.
+
+    Returns a list containing the path to the output .pdb file.
+    '''
     # Load up the topology
     mol = Chem.MolFromMolFile(mol_file)
     pdb_mol_file = mol_file.replace(".mol", ".pdb")
@@ -290,8 +294,10 @@ def chunk_with_amber(
     add_ter_records(out_save, out_save)
     return [out_save]
 
-
 def prot_with_pdb_fixer(chunk_protein, chunk_prot_protein):
+    '''
+    Launch pdbfixer with `chunk_protein` specifying the output in `chunk_prot_protein`
+    '''
     os.system(
         "pdbfixer "
         + chunk_protein
@@ -300,8 +306,14 @@ def prot_with_pdb_fixer(chunk_protein, chunk_prot_protein):
     )
     return [chunk_prot_protein]
 
-
 def add_ter_records(input_file, output_file):
+    '''
+    Add 'TER' tag to pdb where the NME residue appears
+
+    Args
+        input_file (str): input chunked protein in .pdb to add TER tags
+        output_file (str): output pdb file with the TER tags
+    '''
     lines = open(input_file).readlines()
     output_f = open(output_file, "w")
     for line in lines:

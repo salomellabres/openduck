@@ -1,6 +1,7 @@
 import simtk.openmm as mm
 import simtk.openmm.app as app
 import simtk.unit as u
+import parmed
 from parmed.openmm import NetCDFReporter
 import pickle
 from duck.utils import duck_stuff
@@ -116,6 +117,34 @@ def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None):
 
 
     return [checkpoint]
+
+def equilibrate_from_amber_prep(interaction, prmtop_file, inpcrd_file, chunk,  gpu_id, force_constant_eq=1.0):
+    # Load the prepared system:
+    c_pm = parmed.load_file(prmtop_file, inpcrd_file)
+    # Find the interations
+    keyInteraction = cal_ints.find_interaction_amber_input(combined_pmd=c_pm, chunk_file=chunk, res_atom=interaction)
+    # Platform definition
+    platformProperties = {}
+    if gpu_id != None:
+        platform = mm.Platform_getPlatformByName("CUDA")
+        platformProperties["CudaPrecision"] = "double"
+    else:
+        platform = mm.Platform_getPlatformByName("CPU")
+    platformProperties["DeterministicForces"] = 'true'
+
+    complex = "./complex_system.pickle"
+    pickle_out = open(complex, "wb")
+    pickle.dump([c_pm], pickle_out)
+    pickle_out.close()
+
+    with open('complex_system.pickle', 'rb') as f:
+        p = pickle.load(f) + keyInteraction
+    with open('complex_system.pickle', 'wb') as f:
+        pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    do_equlibrate(keyInteraction=keyInteraction, force_constant_equilibrate=force_constant_eq, gpu_id=gpu_id)
+    if not check_if_equlibrated("density.csv", 1):
+        raise EquilibrationError("System is not equilibrated.")
 
 if __name__ == "__main__":
     do_equlibrate()

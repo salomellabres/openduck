@@ -18,7 +18,8 @@ def perform_md(
     force_constant_chunk=0.1,
     gpu_id=0,
 ):
-    '''Performs molecular dynamics (MD) simulation of a ligand-protein complex using OpenMM.
+    '''
+Performs molecular dynamics (MD) simulation of a ligand-protein complex using OpenMM.
 
 Arguments:
 - checkpoint_in_file (str): Path to the input checkpoint file.

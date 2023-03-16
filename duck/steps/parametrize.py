@@ -12,6 +12,16 @@ from pathlib import Path
 
 
 def find_box_size(input_file="complex.pdb", add_factor=20):
+    """
+    Find the size of a cubic box that can contain the input complex.
+
+    Args:
+        input_file (str): The path to the input PDB file containing the complex.
+        add_factor (float): The additional space (in Angstroms) to add to the maximum dimension of the complex.
+
+    Returns:
+        int: The size (in Angstroms) of the cubic box that can contain the complex.
+    """
     complex = parmed.load_file(input_file)
     x_coords = [x[0] for x in complex.positions]
     y_coords = [x[1] for x in complex.positions]
@@ -21,7 +31,6 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     z_size = abs(max(z_coords) - min(z_coords))
     val_in_ang = max(x_size, y_size, z_size) + add_factor * unit.angstrom
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
-
 
 def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1, waters_to_retain="waters_to_retain.pdb", fix_ligand_file=False):
     """
