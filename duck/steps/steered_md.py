@@ -22,7 +22,25 @@ def run_steered_md(
     init_velocity=0.00001,
     gpu_id=0,
 ):
+    '''
+    Run steered molecular dynamics (SMD) simulation in openMM, pulling a ligand along its main interaction with the protein, and write the results to output files.
+    The SMD simulation uses a custom external force to apply a harmonic restraint on a chunk of atoms in the system, and pulls the restrained
+    atoms along a straight line between two points with a constant velocity.
+
+    Args:
+        temperature (Quantity): The temperature to perform the simulation at.
+        checkpoint_in_file (str): The file path of the input checkpoint file.
+        csv_out_file (str): The file path of the output CSV file to write simulation data to.
+        dat_out_file (str): The file path of the output text file to write simulation data to.
+        pdb_out_file (str): The file path of the output PDB file to write the final state of the simulation to.
+        startdist (float): The starting distance of the restrained atoms from their original positions, in angstroms.
+        spring_constant (float, optional): The spring constant of the harmonic restraint applied to the restrained atoms. Default is 50.
+        force_constant_chunk (float, optional): The force constant of the restraint applied to the chunk of atoms. Default is 0.1.
+        init_velocity (float, optional): The initial velocity of the restrained atoms, in angstroms per picosecond. Default is 0.00001.
+        gpu_id (int, optional): The ID of the GPU to use for the simulation. If not provided, the simulation will run on the CPU.
+    '''
     if os.path.isfile(pdb_out_file):
+        print(f'{pdb_out_file} is already calculated, skipping' )
         return
     spring_k = spring_constant * u.kilocalorie / (u.mole * u.angstrom * u.angstrom)
     dist_in = startdist * u.angstrom  # in angstrom
@@ -38,7 +56,7 @@ def run_steered_md(
     else:
         platform = mm.Platform_getPlatformByName("CPU")
     platformProperties["DeterministicForces"] = 'true'
-    print("loading pickle")
+    #print("loading pickle")
     pickle_in = open("complex_system.pickle", "rb")
     pkl = pickle.load(pickle_in)
     combined_pmd = pkl[0]
@@ -128,7 +146,8 @@ def run_steered_md(
         keyInteraction_dist = np.linalg.norm(
             keyInteraction_pos[0] - keyInteraction_pos[1]
         )
-        print(keyInteraction_dist)
+        formated_dist = round(float(str(keyInteraction_dist).split()[0]),6)
+        print(f'{formated_dist} nm\r', end='')
         # Updated system
         simulation.context.setParameter("x0", keyInteraction_pos[0][0])
         simulation.context.setParameter("y0", keyInteraction_pos[0][1])
@@ -162,6 +181,7 @@ def run_steered_md(
     # Save state in PDB file
     positions = simulation.context.getState(getPositions=True).getPositions()
     app.PDBFile.writeFile(simulation.topology, positions, open(pdb_out_file, "w"))
+    print('')
 
 
 if __name__ == "__main__":

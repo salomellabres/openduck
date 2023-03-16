@@ -4,6 +4,10 @@ from rdkit import Chem
 
 
 def prep_lig(mol_file, prefix, addHs=True):
+    '''
+    Obtains the ligand partial charges using antechamber from AmberTools.
+    The method employed is AM1-BCC.
+    '''
     # Accept readily protonated molecule
     rd_mol = Chem.MolFromMolFile(mol_file, removeHs=False)
     h_file = mol_file.replace(".mol", "_h.mol")

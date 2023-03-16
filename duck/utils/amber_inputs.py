@@ -1,9 +1,63 @@
 import os
 import shutil
 
+# misc
+def log_result(result):
+    result_list = list() # ?¿?
+    # This is called whenever foo_pool(i) returns a result.
+    # result_list is modified only by the main process, not the pool workers.
+    result_list.append(result)
+
+# handle raised errors
+def handle_error(error):
+	print(error, flush=True)
+
+def write_string_to_file(file,string):
+    with open(file, 'w') as fh:
+        fh.write(string)
+
+def ligand_string_generator(file):
+    with open(file) as fh:
+        mol = []
+        for line in fh:
+            line=line.rstrip()
+            mol.append(line)
+            if line == '$$$$':
+                new_mol = mol
+                mol = []
+                yield '\n'.join(new_mol)
+                
 class Queue_templates(object):
+    """
+    A class to create queue files for Amber simulations.
+
+Attributes:
+
+    wqb_threshold (float): A threshold value for WQB (quasi bond work) used in simulations.
+    replicas (int): The number of replicas to be used in simulations.
+    hmr (bool): A boolean indicating if simulations are using HMR (Hydrogen Mass Repartitioning).
+    array_limit (bool): A boolean indicating if the queue file should be generated with an array template.
+    top (str): A string representing the topology file name used in simulations.
+    queue_dir (str): A string representing the directory path of the queue templates.
+    commands_string (str): A string representing the command line arguments used in simulations.
+    functions_string (str): A string representing the Python functions used in simulations.
+
+Methods:
+
+    write_string_to_file(file, string): Writes a given string to a file with the given file name.
+    copy_getWqbValues_script(): Copies the getWqbValues.py script from the queue templates directory to the current working directory.
+    write_queue_file(kind): Generates a queue file with the given kind (template) and writes it to disk.
+    """
     def __init__(self, wqb_threshold, replicas, hmr, array_limit=False):
-        
+        '''
+        Initialize the Queue_templates class.
+
+        Args:
+            wqb_threshold (float): A threshold value for WQB (quasi bond work) used in simulations.
+            replicas (int): The number of replicas to be used in simulations.
+            hmr (bool): A boolean indicating if simulations are using HMR (Hydrogen Mass Repartitioning).
+            array_limit (bool): A boolean indicating if the queue file should be generated with an array template.
+        '''        
         self.wqb_threshold = wqb_threshold
         self.replicas = replicas
         self.hmr = hmr
@@ -17,31 +71,52 @@ class Queue_templates(object):
         self.functions_string = self._get_functions_string()
     
     def _get_queue_templates_dir(self):
+        '''
+        Private method to obtain queue template directories
+        '''
         import duck
         p = os.path.abspath(duck.__path__[0])
         return os.path.join(p, 'templates', 'queueing_templates')
     
     def _read_template(self, file):
+        '''
+        Private method to read template files
+        '''
         file_path = os.path.join(self.queue_dir, file)
         with open(file_path) as f:
             file_string = f.read()
         return file_string
     
     def _get_commands_string(self):
+        '''
+        Private method to read command template files
+        '''
         cmd_template = self._read_template('commands.txt')
         return cmd_template.format(replicas=self.replicas, wqb_threshold = self.wqb_threshold, top = self.top, i='{i}')
     
     def _get_functions_string(self):
+        '''
+        Private method to read function template files
+        '''
         funct_template = self._read_template('functions.txt')
         return funct_template.format(top=self.top, nu='{nu}', wqb_limit='{wqb_limit}')
     
     def write_string_to_file(self, file,string):
+        '''
+        Utils method to write strings to a file.
+        '''
         with open(file, 'w') as fh:
             fh.write(string)
     def copy_getWqbValues_script(self):
+        '''
+        Utils method to copy the Wqb Analysis script to desired location.
+        '''
         shutil.copyfile(os.path.join(self.queue_dir, 'getWqbValues.py'), 'getWqbValues.py')
     
     def write_queue_file(self, kind):
+        '''
+        Generates a queue file with the given kind (template) and writes it to disk.
+        '''
         import glob
         if not self.array_limit and len(glob.glob(self.queue_dir+f'/{kind}.q')) == 0:
             raise ValueError(f'{kind} is not a stored queue template.')
@@ -56,7 +131,36 @@ class Queue_templates(object):
         self.copy_getWqbValues_script()
         
 class Amber_templates(object):
+    """
+    A class to create input files for Amber simulations.
+
+    Attributes
+    ----------
+    structure (str): A path to the input structure file.
+    interaction (tuple): A tuple containing the indices of the interacting protein and ligand atoms, and the average distance between them.
+    hmr (bool): If True, use the Hydrogen Mass Repartitioning (HMR) technique.
+    seed (str), optional: A seed to use for the simulations. Default is '-1'.
+
+    Methods
+    -------
+    extract_residuenumbers(structure)
+        Extracts the residue numbers of all protein and ligand residues from a given structure.
+    write_md_inputs()
+        Writes input files for the minimization, heating, equilibration, and production phases of a
+        molecular dynamics simulation.
+    write_smd_inputs()
+        Writes input files for the steered molecular dynamics simulation.
+    """
     def __init__(self, structure, interaction, hmr, seed = '-1'):
+        '''
+        Initialize the Amber_templates class.
+
+        Args:
+           structure (str): A path to the input structure file.
+           interaction (tuple): A tuple containing the indices of the interacting protein and ligand atoms, and the average distance between them.
+           hmr (bool): If True, use the Hydrogen Mass Repartitioning (HMR) technique.
+           seed (str), optional: A seed to use for the simulations. Default is '-1'.
+        ''' 
         self.structure = structure
         self.interaction = interaction
         self.hmr = hmr
@@ -66,15 +170,24 @@ class Amber_templates(object):
         self.chunk_residues = self.extract_residuenumbers(structure)
         
     def _get_amber_templates_dir(self):
+        '''
+        A private method that returns the path to the Amber templates directory.
+        '''
         import duck
         p = os.path.abspath(duck.__path__[0])
         return os.path.join(p, 'templates', 'amber_inputs')
     
     def write_string_to_file(self, file,string):
+        '''
+        Writes a given string to a file with the given name.
+        '''
         with open(file, 'w') as fh:
             fh.write(string)
             
     def _read_template(self, file):
+        '''
+        A private method that reads a given template file and returns its contents as a string.
+        '''
         file_path = os.path.join(self.templates_dir, file)
         with open(file_path) as f:
             file_string = f.read()
@@ -89,6 +202,9 @@ class Amber_templates(object):
         return chunk_residues
     
     def _re_range(self, lst):
+        '''
+        A private method that converts a list of numbers into a string of ranges.
+        '''
         # from here https://stackoverflow.com/questions/9847601/convert-list-of-numbers-to-string-ranges
         # not sure if it works super well!!!!
         n = len(lst)
@@ -116,7 +232,15 @@ class Amber_templates(object):
         return ','.join(result)
         
     def write_md_inputs(self):
-        
+        '''
+        method to generate the input files for Amber molecular dynamics simulations.
+        It generates the following input files:
+           1_min.in: minimization input file.
+           2_heating150.in, 2_heating200.in, 2_heating250.in, 2_heating300.in: heating input files.
+           3_eq.in: equilibration input file.
+           md.in: production MD input file.
+           dist_md.rst: restraint file for distance between the protein and ligand.
+        '''
         # min
         min_template = self._read_template('min.in')
         self.write_string_to_file('1_min.in', min_template.format(chunk_residues=self.chunk_residues))
@@ -152,7 +276,11 @@ class Amber_templates(object):
         self.write_string_to_file('dist_md.rst', md_dist_template.format(prot_idx= prot_idx+1, lig_idx=lig_idx+1))
     
     def write_smd_inputs(self):
-        
+        '''
+        method to generate the input files for Amber steered molecular dynamics simulations.
+        It generates the following input files:
+           duck.in: SMD input file for simulations at 300K.
+           duck_325K.in: SMD input file for simulations at 325K.'''
         # to maintain the same simulation times despite hmr and the smd report number
         if self.hmr:
             time_step = '0.004'
@@ -174,6 +302,9 @@ class Amber_templates(object):
         self.write_string_to_file('dist_duck.rst', duck_dist_template.format(prot_idx= prot_idx+1, lig_idx=lig_idx+1))
         
     def write_all_inputs(self):
+        '''
+        Write the md inputs and smd inputs
+        '''
         self.write_md_inputs()
         self.write_smd_inputs()
         
@@ -181,7 +312,7 @@ def copy_getWqbValues_script():
     import duck
     base_dir = os.path.abspath(duck.__path__[0])
     shutil.copyfile(os.path.join(base_dir, 'scripts', 'getWqbValues.py'), 'getWqbValues.py')
-    
+  
 if __name__=='__main__':
     queues = Queue_templates(wqb_threshold='7', replicas='8', hmr=True, array_limit=False)
     queues.write_queue_file('local')
