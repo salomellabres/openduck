@@ -225,8 +225,8 @@ def get_Wqb_value_AMBER_all(prefix = 'DUCK', file = 'duck.dat', plot=False):
     if plot: fig, ax = plt.subplots(figsize=(10,10))        
     wqb_values = []
     for fol in folder:
-        if os.path.isfile(os.path.joint(fol,file)):
-            wqb_data = get_Wqb_value(os.path.joint(fol,file))
+        if os.path.isfile(os.path.join(fol,file)):
+            wqb_data = get_Wqb_value(os.path.join(fol,file))
             wqb_values.append((fol, wqb_data[0]))
             if plot: ax.plot(wqb_data[1][:,0], wqb_data[1][:,3]-wqb_data[2])
     if plot:
@@ -242,9 +242,9 @@ def get_Wqb_value_AMBER_all(prefix = 'DUCK', file = 'duck.dat', plot=False):
 
 #jarzynksi functions
 def read_DUckdat(temp = 300, pattern='DUCK*/duck.dat', work_col=3, CV_col=0):
-	# read SMD reports from amber (4th line is the work)
-	# If temp not None, it only takes the specified temperature works
-	# its important in order to accurately calculate the jarzynski dG
+    # read SMD reports from amber (4th line is the work)
+    # If temp not None, it only takes the specified temperature works
+    # its important in order to accurately calculate the jarzynski dG
 
     work_values, RC = {}, []
     for dat_file in glob.glob(pattern):
@@ -259,15 +259,15 @@ def read_DUckdat(temp = 300, pattern='DUCK*/duck.dat', work_col=3, CV_col=0):
             for line in fh:
                 line = line.split()
                 work_values[dat_file].append(float(line[work_col]))
-                RC.append(str(round(float(line[CV_col]),3)))
+                RC.append(str(round(float(line[CV_col]),4))) # important to keep at least to 4 decimals. Otherwise amber inputs overlap steps
             if len(RC) == 0:
                 raise ValueError(f'{dat_file} is empty, please check what is happening.')
     return pd.DataFrame(work_values, index = RC)
 
 def normalize_by_series(df, index_threshold = 2500):
-	# Normalize the work values to have the minima at 0 kcal/mol
-	# Find the minima in the first half of steps (i.e 2500).
-	# Should be tweaked but its the normal behaviour.
+    # Normalize the work values to have the minima at 0 kcal/mol
+    # Find the minima in the first half of steps (i.e 2500).
+    # Should be tweaked but its the normal behaviour.
     import copy
     norm_df = copy.deepcopy(df)
     for col in norm_df.columns:
@@ -284,6 +284,7 @@ def get_expavg_FD_df(work_df, T=300, calculate_FD=True):
     expBwork  = t_work.applymap(lambda x : exp(x*(-B)))
     N = len(work_df.columns) # Should be 5000 for DUck
 
+    #print(work_df.to_string())
     for rc, work_step in work_df.iterrows():
         #initialize variables to prevent errors in saving empty values
         expavg, sqrtMSE, MSE, Bj, v, av, ai, Wdis, average, variance, FD, sqrtMSE_FD = (np.NAN for x in range(12))
@@ -291,7 +292,8 @@ def get_expavg_FD_df(work_df, T=300, calculate_FD=True):
         #Normal statistics
         average  = np.mean(work_step.array)
         variance = np.var(work_step)
-
+        #print(expBwork.loc[:,rc])
+        #print(np.shape(expBwork.loc[:,rc]))
         #Boltzman average for the step
         expavg   = (-log(np.mean(expBwork.loc[:,rc])))/B
         if calculate_FD: # I have added the option to skip it, as it was giving some overflow float problems with very big dissipations during sampling
@@ -341,19 +343,19 @@ def plot_expavg_FD(raw_data_df, FD_df):
 
 def shapiro_test(work_df):
     #Perform a shapiro-wilk test to assess normality of the work values
-	fig, ax = plt.subplots()
-	#values = work_df.tail(1).values[0]
-	values = np.array([work_df[coll].max() for coll in work_df.columns]) # get the real maximum for the shapiro, as it will be the one used
-	statistic, p = shapiro(values)
-	y, x, _ = ax.hist(values, bins = len(values)//2)
-	ax.text(y = max(y)-1, x = max(x)-1.5, s ='Shapiro p = %s'%round(p,4))
-	sns.despine()
-	ax.set_xlabel('Wqb (kcal/mol)')
-	fig.savefig('wqb_hist.pdf')
-	if p >= 0.05:
-		return True
-	else:
-		return False
+    fig, ax = plt.subplots()
+    #values = work_df.tail(1).values[0]
+    values = np.array([work_df[coll].max() for coll in work_df.columns]) # get the real maximum for the shapiro, as it will be the one used
+    statistic, p = shapiro(values)
+    y, x, _ = ax.hist(values, bins = len(values)//2)
+    ax.text(y = max(y)-1, x = max(x)-1.5, s ='Shapiro p = %s'%round(p,4))
+    sns.despine()
+    ax.set_xlabel('Wqb (kcal/mol)')
+    fig.savefig('wqb_hist.pdf')
+    if p >= 0.05:
+        return True
+    else:
+        return False
 
 def bootstrap_df(norm_data_list, sample_size = 20, samples=20, plot=True, temps=[300, 325]):
     """
@@ -372,59 +374,59 @@ def bootstrap_df(norm_data_list, sample_size = 20, samples=20, plot=True, temps=
     sample_dfs: list of pandas.DataFrame, a list of the bootstrapped samples for each temperature, containing the work values 
                 for each CV bin in each bootstrap iteration
 """
-	sample_dfs = []
-	for temp, norm_df in zip(temps, norm_data_list):
-		for i in range(samples):
-			new_df = norm_df.sample(n=sample_size, replace=True,axis='columns')
-			new_df.columns = [f'Sample_{x}'for x in range(sample_size)]
-			sample_dfs.append(get_expavg_FD_df(new_df, T=temp, calculate_FD=False))
-	flat_dict = {'CV':[],'Jarzynski':[]}
-	for sample in sample_dfs:
-		for i,row in sample.iterrows():
-			flat_dict['CV'].append(float(i))
-			flat_dict['Jarzynski'].append(row['expavg'])
-	flat_df = pd.DataFrame(flat_dict)
-	if plot:
-		fig, ax = plt.subplots()
-		sns.lineplot(data=flat_df, x='CV',y='Jarzynski', errorbar='sd', ax=ax)
-		ax.set_ylabel('Free Energy (kcal/mol)')
-		ax.set_xlabel('Distance (\u212B)')
-		fig.savefig('bootstraped_WQB_plot.png')
-	return flat_df, sample_dfs
+    sample_dfs = []
+    for temp, norm_df in zip(temps, norm_data_list):
+        for i in range(samples):
+            new_df = norm_df.sample(n=sample_size, replace=True,axis='columns')
+            new_df.columns = [f'Sample_{x}'for x in range(sample_size)]
+            sample_dfs.append(get_expavg_FD_df(new_df, T=temp, calculate_FD=False))
+    flat_dict = {'CV':[],'Jarzynski':[]}
+    for sample in sample_dfs:
+        for i,row in sample.iterrows():
+            flat_dict['CV'].append(float(i))
+            flat_dict['Jarzynski'].append(row['expavg'])
+    flat_df = pd.DataFrame(flat_dict)
+    if plot:
+        fig, ax = plt.subplots()
+        sns.lineplot(data=flat_df, x='CV',y='Jarzynski', errorbar='sd', ax=ax)
+        ax.set_ylabel('Free Energy (kcal/mol)')
+        ax.set_xlabel('Distance (\u212B)')
+        fig.savefig('bootstraped_WQB_plot.png')
+    return flat_df, sample_dfs
 
 def get_stats_from_bootstrapping(flat_df, CVs):
-	stats_dict = {'CV':[],'AvgJarzynski':[], 'sd':[], 'sem':[]}
-	for step in CVs:
-		sub_df = flat_df[flat_df['CV'] == float(step)]
-		values = np.array(sub_df['Jarzynski'])
-		stats_dict['CV'].append(float(step))
-		stats_dict['AvgJarzynski'].append(np.mean(values))
-		stats_dict['sd'].append(np.std(values))
-		stats_dict['sem'].append(sem(values))
-	stats_df = pd.DataFrame(stats_dict)
-	return stats_df
+    stats_dict = {'CV':[],'AvgJarzynski':[], 'sd':[], 'sem':[]}
+    for step in CVs:
+        sub_df = flat_df[flat_df['CV'] == float(step)]
+        values = np.array(sub_df['Jarzynski'])
+        stats_dict['CV'].append(float(step))
+        stats_dict['AvgJarzynski'].append(np.mean(values))
+        stats_dict['sd'].append(np.std(values))
+        stats_dict['sem'].append(sem(values))
+    stats_df = pd.DataFrame(stats_dict)
+    return stats_df
 
 def average_dataframes(dataf1, dataf2):
-    '''Return the average dataframe of two dataframes. Used as the average dataframe for the Fluctuation dissipation dataframe at the two different temperatures.'''
-	new_df = pd.DataFrame(index=dataf1.index, columns=dataf1.columns)
-	for i,r in dataf1.iterrows():
-		for col,v300 in r.items():
-			v325 = dataf2.loc[i,col]
-			new_df.at[i,col] = (v300+v325)/2
-	return new_df
+    '''Return the average dataframe of two dataframes. Used as the average dataframe for the Fluctuation dissipation dataframe at the two different'''
+    new_df = pd.DataFrame(index=dataf1.index, columns=dataf1.columns)
+    for i,r in dataf1.iterrows():
+        for col,v300 in r.items():
+            v325 = dataf2.loc[i,col]
+            new_df.at[i,col] = (v300+v325)/2
+    return new_df
 
 def get_real_jarzynski_from_bootstrapping(sample_dfs, save=None, splitting_point=2500):
-	# real calculated wqb should come from the maximums and not from the end points
-	# as such, the reported values come from the following
-	max_values = [max(list(sample_df['expavg'])[list(sample_df['expavg'])[:splitting_point].index(min(list(list(sample_df['expavg'])[:splitting_point]))):])
-              for sample_df in sample_dfs]
-	avg = np.mean(max_values)
-	sd = np.std(max_values)
-	sem_v = sem(max_values)
-	if save:
-		with open(save, 'w') as f:
-			f.write('\t'.join([str(x) for x in [avg,sd,sem_v]]))
-	return avg,sd,sem_v, max_values
+    # real calculated wqb should come from the maximums and not from the end points
+    # as such, the reported values come from the following
+    max_values = [max(list(sample_df['expavg'])[list(sample_df['expavg'])[:splitting_point].index(min(list(list(sample_df['expavg'])[:splitting_point]))):])
+                for sample_df in sample_dfs]
+    avg = np.mean(max_values)
+    sd = np.std(max_values)
+    sem_v = sem(max_values)
+    if save:
+        with open(save, 'w') as f:
+            f.write('\t'.join([str(x) for x in [avg,sd,sem_v]]))
+    return avg,sd,sem_v, max_values
 
 def do_jarzynski_analysis(temperatures = [300,325], index_threshold = 2500, sample_size = 20, samples=20, plot=True, mode='amber'):
     """
@@ -465,7 +467,7 @@ def do_jarzynski_analysis(temperatures = [300,325], index_threshold = 2500, samp
     stats_df = get_stats_from_bootstrapping(flat_bootstrapped_df, CVs)
     avg,sd,sem_v, max_stats = get_real_jarzynski_from_bootstrapping(sampled_dfs, save='jarz_sd_sem.tbl')
 
-	#save data in csv
+    #save data in csv
     FD_df.to_csv('fluctuation_dissipation.csv')
     stats_df.to_csv('bootstrapped_stats.csv')
     return avg, sd, sem_v
