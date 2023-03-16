@@ -257,6 +257,8 @@ GAFF2_spce/	6.17347
 
 Calculating and reporting the $\Delta_{QB}$ of the same simulations as before
 ```{bash}
+$ openduck report -p '*/' -d jarzynski
+
 System	Jarzynski	Jarzynski_SD	Jarzynski_SEM
 SMIRNOFF/	6.391165243930965	0.12701922010484387	0.02033935321315065
 GAFF2/  6.990007044361647	0.23871054814271678	0.038224279367893604
