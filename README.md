@@ -2,7 +2,7 @@
 [![Version](http://img.shields.io/badge/version-0.1.0-blue.svg?style=flat)](https://github.com/CBDD/openduck)
 [![License](http://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat)](https://github.com/CBDD/openduck/LICENSE)
 
-# Welcome to openDUck
+# Welcome to OpenDUck
 
 OpenDUck is an opensource implementation of Dynamic Undocking.
 
