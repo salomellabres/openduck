@@ -86,19 +86,18 @@ def find_interaction_amber_input(combined_pmd, chunk_file, res_atom):
         rename_mol2_residues(chunk)
 
     chain = '' # chain information gets lost in the chunk
-    res_name = res_atom.split("_")[0][:3]
-    res_number = int(res_atom.split("_")[0][3:6])
+    res_name = res_atom.split("_")[1]
+    res_number = int(res_atom.split("_")[2])
     atom_name = res_atom.split("_")[-1]
 
     for atom in chunk.atoms:
         # chain information gets lost in the chunking process, which is expected. Maybe need a check to make sure
         if check_same(atom, chain, res_name, res_number, atom_name):
-            print(atom.name, atom.residue.name)
+            #print(atom.name, atom.residue.name)
             chunk_atom = atom
             break
     if 'chunk_atom' not in locals():
-        print('Cannot find the interaction atom in the chunk. Check residue labelling')
-        return
+        raise ValueError('Cannot find the interaction atom in the chunk. Check residue labelling')
     else:
         # Find the positions of the protein atoms in the combined_system atoms and the chunk
         # chunk_dict = chunk_residue_number: combined_pmd_residue_number
@@ -107,12 +106,11 @@ def find_interaction_amber_input(combined_pmd, chunk_file, res_atom):
             chunk_dict[cr.number] = cd.number
         for atom in combined_pmd.atoms:
             if check_same(atom, chain, res_name, chunk_dict[chunk_atom.residue.number], atom_name):
-                print(atom.name, atom.residue.name)
+                #print(atom.name, atom.residue.name)
                 target_protein_atom = atom
                 break
         if 'target_protein_atom' not in locals():
-            print('Cannot find the interaction atom in the prepared system. Check residue labelling')
-            return
+            raise ValueError('Cannot find the interaction atom in the prepared system. Check residue labelling')
         
         index_one = target_protein_atom.idx
         distance_atom_2 = [(x.idx, distance2(x, target_protein_atom)) for x in combined_pmd.atoms if is_lig(x)]

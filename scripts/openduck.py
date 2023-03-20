@@ -107,11 +107,12 @@ def args_sanitation(parser, modes):
             modes.choices['OpenMM_from-amber'].error('The input needs to be either the input yaml or specified in the command line (topology, coordinates and interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
-            if all(item in list(input_arguments.keys()) for item in ['topology', 'interaction', 'coordinates']):
+            if all(item in list(input_arguments.keys()) for item in ['topology', 'interaction', 'coordinates', 'receptor']):
                 #transfer all required items
                 args.topology = str(input_arguments['topology'])
                 args.coordinates = str(input_arguments['coordinates'])
                 args.interaction = str(input_arguments['interaction'])
+                args.receptor = str(input_arguments['receptor'])
 
                 # overwrite the defaults from command line args
                 if 'smd_cycles' in input_arguments: args.smd_cycles =  int(input_arguments['smd_cycles'])
@@ -122,7 +123,7 @@ def args_sanitation(parser, modes):
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
 
             else:
-                modes.choices['OpenMM_from-amber'].error('You need to specify at least the amber topology and coordinate files and the interaction.')
+                modes.choices['OpenMM_from-amber'].error('You need to specify at least the amber topology and coordinates, a receptor and the interaction.')
         elif (args.interaction is None or args.topology is None or args.coordinates is None):
             modes.choices['OpenMM_from-amber'].error('The parameters --topology, --coordinates, --interaction are required')
         else:
@@ -564,7 +565,7 @@ def do_openMM_from_amber(args):
     '''
     Perform openduck from an amber topology. Extracted from the old 'from_amber_input.py'
     '''
-    from duck.steps import equilibrate_from_amber_prep
+    from duck.steps.equlibrate import equilibrate_from_amber_prep
     save_dir = Path('duck_runs')
     if not save_dir.exists(): save_dir.mkdir()
 
