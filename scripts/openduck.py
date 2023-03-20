@@ -123,7 +123,7 @@ def args_sanitation(parser, modes):
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
 
             else:
-                modes.choices['OpenMM_from-amber'].error('You need to specify at least the amber topology and coordinates, a receptor and the interaction.')
+                modes.choices['OpenMM_from-amber'].error('You need to specify at least the amber topology and coordinates, a receptor and the interaction and a receptor file.')
         elif (args.interaction is None or args.topology is None or args.coordinates is None):
             modes.choices['OpenMM_from-amber'].error('The parameters --topology, --coordinates, --interaction are required')
         else:
