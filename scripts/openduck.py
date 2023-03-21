@@ -369,19 +369,30 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
     from duck.utils.analysis_and_report import get_Wqb_value
     import filecmp
 
+    if not os.path.isfile(input_checkpoint):
+        raise OSError(f'{input_checkpoint} can not be found. Something might have gone wrong during equilibration.')
+    if not os.path.isfile(pickle):
+        raise OSError(f'{pickle} can not be found. Something might have gone wrong during equilibration.')
+    
     # Why is this shutil here? are the md/smd functions hardcoded to read this specific files?
     # check if files are the same, as shutil complains if it is the case.
-    if not filecmp.cmp(input_checkpoint, 'equil.chk'):
+    if not os.path.isfile('equil.chk'):
+        shutil.copyfile(input_checkpoint, "equil.chk")
+    if not os.path.isfile('copmlex_system.pickle'):
+        shutil.copyfile(pickle, "complex_system.pickle")
+    
+    '''if not filecmp.cmp(input_checkpoint, 'equil.chk'):
         shutil.copyfile(input_checkpoint, "equil.chk")
     if not filecmp.cmp(pickle, "complex_system.pickle"):
         shutil.copyfile(pickle, "complex_system.pickle")
+    '''
 
     # Now do the MD
     # remember start_dist
     if not Path(save_dir).exists(): save_dir.mkdir()
     for i in range(num_runs):
         if i == 0:
-            md_start = "equil.chk"
+            md_start = str(input_checkpoint)
         else:
             md_start = str(Path(save_dir, "md_" + str(i - 1) + ".chk"))
         log_file = str(Path(save_dir, "md_" + str(i) + ".csv"))
@@ -588,12 +599,12 @@ def do_openMM_from_amber(args):
     duck_smd_runs(input_checkpoint=new_equil_path,
                   pickle=new_pickle_path,
                   num_runs=args.smd_cycles,
-                  md_len=args.md_len,
+                  md_len=args.md_length,
                   gpu_id=args.gpu_id,
                   start_dist=args.init_distance,
-                  init_velocity=args.init_velocity,
+                  init_velocity=args.init_velocities,
                   save_dir=save_dir,
-                  wqb_threshold=args.wqb_threhold)
+                  wqb_threshold=args.wqb_threshold)
 
 def do_AMBER_preparation(args):
     '''

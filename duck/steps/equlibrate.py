@@ -119,6 +119,7 @@ def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None):
     return [checkpoint]
 
 def equilibrate_from_amber_prep(interaction, prmtop_file, inpcrd_file, chunk,  gpu_id, force_constant_eq=1.0):
+    from duck.utils.check_system import check_if_equlibrated
     # Load the prepared system:
     c_pm = parmed.load_file(prmtop_file, inpcrd_file)
     # Find the interations
@@ -142,9 +143,9 @@ def equilibrate_from_amber_prep(interaction, prmtop_file, inpcrd_file, chunk,  g
     with open('complex_system.pickle', 'wb') as f:
         pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    do_equlibrate(keyInteraction=keyInteraction, force_constant_equilibrate=force_constant_eq, gpu_id=gpu_id)
+    checkpoint = do_equlibrate(keyInteraction=keyInteraction, force_constant_equilibrate=force_constant_eq, gpu_id=gpu_id)
     if not check_if_equlibrated("density.csv", 1):
         raise EquilibrationError("System is not equilibrated.")
-
+    return checkpoint
 if __name__ == "__main__":
     do_equlibrate()
