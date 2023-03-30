@@ -53,11 +53,9 @@ Raises:
     if os.path.isfile(checkpoint_out_file):
         print(f'{checkpoint_out_file} is already calculated, skipping' )
         return
-    #print("loading pickle")
     pickle_in = open("complex_system.pickle", "rb")
     pkl = pickle.load(pickle_in)
     combined_pmd = pkl[0]
-    # print(dir(combined_pmd)) # why print the dir of the combined system from the pickle?
     key_interaction = pkl[1:]
     pickle_in.close()
     MD_len = md_len * u.nanosecond
