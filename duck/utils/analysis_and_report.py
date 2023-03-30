@@ -30,7 +30,7 @@ def get_mols_and_format(data_df, mode='min'):
     for i, row in data_df.iterrows():
         ligand_file = os.path.join(row['System'], 'ligand.pdb')
         if not os.path.isfile(ligand_file):
-            raise OSError(f'Can not open {ligand_file} make sure you have the ligands in the duck folders to obtain sd format output of the report.')
+            raise OSError(f'Cannot open {ligand_file}; make sure you have the ligands in the duck folders to obtain the report in SDF format.')
         mol = Chem.MolFromPDBFile(ligand_file, proximityBonding=False)
         if not mol:
             raise ValueError(f'Error: Could not load {ligand_file}.')
