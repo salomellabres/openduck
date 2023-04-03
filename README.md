@@ -23,7 +23,7 @@ $ python setup.py install
 
 ## OpenDUck usage
 
-Openduck can be used as a python library or as an executable. The executable provided is openduck, which is set up an entry point in the path. Alternatively you can use the openduck.py in scripts.
+Openduck can be used as a python library or as an executable. The executable provided is openduck, which is set up an entry point in the path. Alternatively you can use the openduck.py in the scripts subdirectory.
 
 Openduck comes with several submodules to launch the different steps of Dynamic Undocking
 
@@ -38,23 +38,20 @@ Open Dynamic Undocking
 
 optional arguments:
   -h, --help            show this help message and exit
-
+  
 Open Dynamic Undocking toolkit. Choose one of the following actions:
   
-    OpenMM_prepare      
-                        Preparation of systems for OpenMM simulations
-    OpenMM_full-protocol
+    openmm-prepare      Preparation of systems for OpenMM simulations.
+    openmm-full-protocol
                         OpenDuck OpenMM full protocol either with or without chunking the protein.
-    OpenMM_from-equilibrated
-                        OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from duck_prepare_sys.py)
-    OpenMM_from-amber   
-                        OpenDuck openMM protocol starting from an amber topology and coordinates (prmtop and inpcrd).
-    AMBER_prepare       
-                        Preparation of systems, inputs and queue files for AMBER simulations
-    report              
-                        Generate report for openduck results.
-    chunk               
-                        Chunk a protein for Dynamic Undocking.
+    openmm-from-equilibrated
+                        OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from
+                        duck_prepare_sys.py).
+    openmm-from-amber   OpenDuck openMM protocol starting from an amber topology and coordinates
+                        (prmtop and inpcrd).
+    amber-prepare       Preparation of systems, inputs and queue files for AMBER simulations.
+    report              Generate report for openduck results.
+    chunk               Chunk a protein for Dynamic Undocking.
 ```
 
 Each of the OpenDUck modules accepts the input either as command line arguments or in a yaml file.
@@ -62,27 +59,39 @@ The arguments in the input.yaml are expected to follow the command-line nomencla
 
 ### Running OpenDUck in OpenMM
 
-The openMM implementation of OpenDUck is divided in two steps, the preparation using openmm_forcefields and the production (MD/SMD) following the Dynamic Undocking protocol.
-During the preparation step, the protein is reduced to the pocket during the _chunking_ step, then the ligand and receptor are parametrized with the specified forcefields and the solvation box is generated.
-After equilibration, the sequential MD/SMD simulations, sampling and steering the main interaction from the specified distances, are produced in OpenMM.
+The OpenMM implementation of OpenDUck is divided in two steps, the preparation using openmm_forcefields and the production (MD/SMD) following the Dynamic Undocking protocol.
+During the preparation step, the protein is reduced to the pocket region during the _chunking_ step, then the ligand and receptor are parametrized and the solvation box is generated. After equilibration, the sequential MD/SMD simulations, sampling and steering the main interaction from the specified distances, are produced in OpenMM.
 
 The openMM submodules are setup to allow independent usage of the previously mentioned steps:
 
-    * OpenMM_full-protocol: Executes the full OpenDuck protocol, from the protein-ligand files to the Steered simulations
-    * OpenMM_prepare: Executes exclusively the preparation and equilibration of the protein-ligand complex
-    * OpenMM_from-equilibrated: Executes exclusively the production of MD/SMD runs from an equilibrated input.
-    * OpenMM_from-amber: Starts the openDuck simulations from an amber topology.
+    * openmm-full-protocol: Executes the full OpenDuck protocol, from the protein-ligand files to the Steered simulations
+    * openmm-prepare: Executes exclusively the preparation and equilibration of the protein-ligand complex
+    * openmm-from-equilibrated: Executes exclusively the production of MD/SMD runs from an equilibrated input.
+    * openmm-from-amber: Starts the openDuck simulations from an amber topology.
 
-#### Example full-protocol
+#### Openmm-full-protocol
 
-The complete OpenDUck protocol through OpenMM can be executed using the OpenMM_full-protocol submodule. The usage of the module can be obtained through the help.
+The complete OpenDUck protocol through OpenMM can be executed using the OpenMM_full-protocol submodule.
+The full protocol executes the following steps:
+
+    * Chunking (optional)
+    * Preparation
+      * Ligand parametrization
+      * Receptor parametrization
+      * Box generation
+    * Equilibration
+    * (MD + SMD@300K + SMD@325K + WQB check ) x smd-cycles
 
 ```{bash}
-$ openduck OpenMM_full-protocol -h
+$ openduck openmm-full-protocol -h
 
-usage: openduck OpenMM_full-protocol [-h] [-y YAML_INPUT] [-l LIGAND] [-i INTERACTION] [-r RECEPTOR] [-g GPU_ID] [--do-chunk] [-c CUTOFF] [-b] [-f {SMIRNOFF,GAFF2}]
-                                     [-w {tip3p,spce}] [-ff {amber99sb,amber14-all}] [-ion IONIC_STRENGTH] [-s SOLVENT_BUFFER_DISTANCE] [-water WATERS_TO_RETAIN] [-fl]
-                                     [-F FORCE_CONSTANT_EQ] [-n SMD_CYCLES] [-m MD_LENGTH] [-W WQB_THRESHOLD] [-v INIT_VELOCITIES] [-d INIT_DISTANCE]
+usage: openduck openmm-full-protocol [-h] [-y YAML_INPUT] [-l LIGAND] [-i INTERACTION] [-r RECEPTOR]
+                                     [-g GPU_ID] [--do-chunk] [-c CUTOFF] [-b] [-f {SMIRNOFF,GAFF2}]
+                                     [-w {tip3p,spce}] [-ff {amber99sb,amber14-all}]
+                                     [-ion IONIC_STRENGTH] [-s SOLVENT_BUFFER_DISTANCE]
+                                     [-water WATERS_TO_RETAIN] [-fl] [-F FORCE_CONSTANT_EQ]
+                                     [-n SMD_CYCLES] [-m MD_LENGTH] [-W WQB_THRESHOLD]
+                                     [-v INIT_VELOCITIES] [-d INIT_DISTANCE]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -95,7 +104,7 @@ Main arguments:
   -i INTERACTION, --interaction INTERACTION
                         Protein atom to use for ligand interaction.
   -r RECEPTOR, --receptor RECEPTOR
-                        Protein pdb file to chunk, or chunked protein if mode is "for_chunk".
+                        Protein or chunked protein in pdb format used as receptor.
   -g GPU_ID, --gpu-id GPU_ID
                         GPU ID, if not specified, runs on CPU only.
 
@@ -113,37 +122,41 @@ Parametrization arguments:
   -ff {amber99sb,amber14-all}, --protein-forcefield {amber99sb,amber14-all}
                         Protein forcefield to parametrize the chunked protein.
   -ion IONIC_STRENGTH, --ionic-strength IONIC_STRENGTH
-                        Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M
+                        Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default =
+                        0.1 M
   -s SOLVENT_BUFFER_DISTANCE, --solvent-buffer-distance SOLVENT_BUFFER_DISTANCE
                         Buffer distance between the periodic box and the protein. Default = 10 A
   -water WATERS_TO_RETAIN, --waters-to-retain WATERS_TO_RETAIN
-                        PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.
-  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add hydrogens to carbon atoms.
+                        PDB File with structural waters to retain water moleules. Default is
+                        waters_to_retain.pdb.
+  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right
+                        charge assigned and add hydrogens to carbon atoms.
 
 MD/SMD Production arguments:
   -F FORCE_CONSTANT_EQ, --force-constant_eq FORCE_CONSTANT_EQ
-                        Force Constant for equilibration
+                        Force Constant for equilibration.
   -n SMD_CYCLES, --smd-cycles SMD_CYCLES
-                        Number of MD/SMD cycles to perfrom
+                        Number of MD/SMD cycles to perfrom.
   -m MD_LENGTH, --md-length MD_LENGTH
                         Lenght of md sampling between smd runs in ns.
   -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
-                        Minimum WQB threshold to stop simulations.
+                        Minimum WQB threshold to stop simulations. If not set (Default), all smd-cycles
+                        will be calculated.
   -v INIT_VELOCITIES, --init-velocities INIT_VELOCITIES
-                        Set initial velocities when heating
+                        Set initial velocities when heating.
   -d INIT_DISTANCE, --init-distance INIT_DISTANCE
-                        Set initial HB distance for SMD
+                        Set initial HB distance for SMD in A. Default = 2.5 A.
 ```
 
 A valid example is provided in the test subfolder, and can be executed using the command-line arguments like the following:
 
 ```{bash}
-$ openduck OpenMM_full-protocol -l brd4_lig.mol -r 4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 -g 0 -f GAFF2 -ff amber14-all -w tip3p -w 6 -n 20
+$ openduck openmm-full-protocol -l brd4_lig.mol -r 4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 -g 0 -f GAFF2 -ff amber14-all -w tip3p -w 6 -n 20
 ```
 
 Similarly, an execution with the input parameters in a yaml is also possible (the example has slightly different parameters as the command line, just for ilustration purposes ).
 ```{bash}
-openduck OpenMM_full-protocol -y input.yaml
+openduck openmm-full-protocol -y input.yaml
 ```
 where the _input.yaml_ file has the following
 ```{yaml}
@@ -176,19 +189,122 @@ init_distance : 2.5
 fix_ligand : False
 ```
 
+#### OpenMM-prepare & OpenMM-from-equilibrated
+
+The OpenDUck protocol can also be executed independently in two steps, the preparation & equilibration in _openmm-prepare_ and the production in _openmm-from-equilibrated_ subcommands. Following the schema presented above, each substep falls into the following subcommand.
+
+    openmm-prepare
+      * Chunking (optional)
+      * Preparation
+        * Ligand parametrization
+        * Receptor parametrization
+        * Box generation
+      * Equilibration
+    openmm-from-equilibrated
+      * (MD + SMD@300K + SMD@325K + WQB check ) x smd-cycles
+
+Each of the two subcommads share arguments with the openmm-full-protocol, based on the execution steps they have in common. As with the previus command, the execution can come from flagged arguments or with the same arguments in a yaml input file.
+
+Sample yaml input files for openmm-prepare and openmm-from-equilibrated would be the following
+
+```
+# openmm-prepare input.yaml
+# Main arguments
+ligand_mol : '1a28_lig.mol'
+receptor_pdb : '1a28_prot.pdb'
+interaction : 'A_ARG_766_NH2'
+
+# Chunking arguments
+do_chunk : True
+cutoff : 10
+ignore_buffers : False
+
+#Preparation arguments
+small_molecule_forcefield : 'GAFF2'
+protein_forcefield : 'amber14-all'
+water_model : 'spce'
+ionic_strength : 0.1
+solvent_buffer_distance : 12
+
+#Equilibration arguments
+do_equilibrate : True
+gpu_id : 0
+force_constant_eq : 1
+```
+
+```
+ # openmm-from-equilibrated
+equilibrated_system : equil.chk
+pickle : complex_system.pickle
+smd_cycles : 20
+md_length : 0.5
+wqb_threshold : 6
+gpu_id : 0
+```
+
+#### OpenMM-from-amber
+
+Alternatively the OpenDUck protocol can be launched from an amber topology and coordinates. This can be done using the _openmm-from-amber_ subcommand.
+
+``` {bash}
+$ openduck openmm-from-amber -h
+
+usage: openduck openmm-from-amber [-h] [-y YAML_INPUT] [-c COORDINATES] [-t TOPOLOGY] [-i INTERACTION]
+                                  [-r RECEPTOR] [-n SMD_CYCLES] [-m MD_LENGTH] [-W WQB_THRESHOLD]
+                                  [-v INIT_VELOCITIES] [-d INIT_DISTANCE] [-g GPU_ID]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -y YAML_INPUT, --yaml-input YAML_INPUT
+                        Input yaml file with the all the arguments for the openMM simulations from the
+                        equilibrated system.
+  -c COORDINATES, --coordinates COORDINATES
+                        Amber input coordinates
+  -t TOPOLOGY, --topology TOPOLOGY
+                        Amber input topology
+  -i INTERACTION, --interaction INTERACTION
+                        Protein atom to use for ligand interaction.
+  -r RECEPTOR, --receptor RECEPTOR
+                        Receptor .mol2 file
+  -n SMD_CYCLES, --smd-cycles SMD_CYCLES
+                        Number of MD/SMD cycles to perfrom
+  -m MD_LENGTH, --md-length MD_LENGTH
+                        Lenght of md sampling between smd runs in ns.
+  -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
+                        Minimum WQB threshold to stop simulations. If not set (Default), all smd-cycles
+                        will be calculated.
+  -v INIT_VELOCITIES, --init-velocities INIT_VELOCITIES
+                        Set initial velocities when heating.
+  -d INIT_DISTANCE, --init-distance INIT_DISTANCE
+                        Set initial HB distance for SMD in A. Default = 2.5 A.
+  -g GPU_ID, --gpu-id GPU_ID
+                        GPU ID, if not specified, runs on CPU only.
+```
+
+If prefered, the script can also be executed from a yaml file with the commands. A sample input.yaml file could be the following:
+```{yaml}
+interaction: A_ASN_140_ND2
+coordinates: system_complex.inpcrd
+topology: system_complex.prmtop
+receptor: 4LR6_aligned_chunk_nowat.pdb
+smd_cycles: 20
+wqb_threshold: 6
+gpu_id: 0
+```
+
 ### Running OpenDUck in Amber
 
 Originally Dynamic Undocking was designed to run in Amber, in OpenDUck we have maintained the same protocol for AMBER, replacing the parametrization and file-generation previously done by MOE with an open implementation. Similarly as with the old protocol, freedom on the quequeing headers and preparation are integrated both in the commandline arguments and in the input yaml.
 Preparation flags are very similar to those for OpenMM, as most of the implementation is shared.
 
 ```{bash}
-$ openduck AMBER_prepare -l ../1a28_lig.mol -r ../1a28_prot.pdb -i A_ARG_766_NH2 --do-chunk -c 10 -b False -f GAFF2 -ff amber99sb -w SPCE -ion 0.05 -s 11 --HMR -n 4 -W 4 -q Slurm
+$ openduck amber-prepare -l ../1a28_lig.mol -r ../1a28_prot.pdb -i A_ARG_766_NH2 --do-chunk -c 10 -b False -f GAFF2 -ff amber99sb -w SPCE -ion 0.05 -s 11 --HMR -n 4 -W 4 -q Slurm
 ```
 
 Tipically, we Dynamic Undocking is employed as a post-docking filter in a virtual screening campaign. As such, multiple ligands might be generated at the time. A batch execution of the DUck preparation can be executed specifying the _--batch_ argument and giving an sdf file with multiple ligands as input. Each ligand and the associated file structure will be generated in the LIG_target_{n} subfolder where n is the ligand's position in the sdf.
 
 ```{bash}
-$ openduck AMBER_prepare -l ../brd4_ligands.sdf -r ../4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 --waters-to-retain ../waters_to_retain.pdb -f gaff2 -ff amber14-all -w spce -ion 1 -s 30 --HMR --smd-cycles 10 -wqb-threshold 8 -q SGE --seed 1235467890 --batch --threads 8
+$ openduck amber-prepare -l ../brd4_ligands.sdf -r ../4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 --waters-to-retain ../waters_to_retain.pdb -f gaff2 -ff amber14-all -w spce -ion 1 -s 30 --HMR --smd-cycles 10 -wqb-threshold 8 -q SGE --seed 1235467890 --batch --threads 8
 ```
 
 The queueing template is stored in duck/templates/queueing_templates. To customize a template, a new file can be added in the directory with the following format: {queue_name}_array.q or {queue_name}.q either if the expected execution is in an array or not. For a local execution, the _local_ argument can be given for a plain list of commands.

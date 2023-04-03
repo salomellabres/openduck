@@ -13,7 +13,7 @@ def args_sanitation(parser, modes):
     # check if everything is ok
     if args.mode == 'full-protocol':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
-            modes.choices['OpenMM_full-protocol'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+            modes.choices['openmm-full-protocol'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
@@ -40,15 +40,15 @@ def args_sanitation(parser, modes):
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
             else:
-                modes.choices['OpenMM_full-protocol'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+                modes.choices['openmm-full-protocol'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
-            modes.choices['OpenMM_full-protocol'].error('The parameters --ligand, --interaction and --receptor are required.')
+            modes.choices['openmm-full-protocol'].error('The parameters --ligand, --interaction and --receptor are required.')
         else:
             # all good
             pass
     elif args.mode == 'from-equilibration':
         if (args.yaml_input is None) and (args.equilibrated_system is None or args.pickle is None):
-            modes.choices['OpenMM_from-equilibrated'].error('The input needs to be either the input yaml or specified in the command line system "pickle" and "equilibrated_system" from parametrization.')
+            modes.choices['openmm-from-equilibrated'].error('The input needs to be either the input yaml or specified in the command line system "pickle" and "equilibrated_system" from parametrization.')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['pickle', 'equilibrated_system']):
@@ -65,15 +65,15 @@ def args_sanitation(parser, modes):
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
 
             else:
-                modes.choices['OpenMM_from-equilibrated'].error('You need to specify at least "pickle" and "equilibrated_system" in the yaml file.')
+                modes.choices['openmm-from-equilibrated'].error('You need to specify at least "pickle" and "equilibrated_system" in the yaml file.')
         elif (args.pickle is None or args.equilibrated_system is None):
-            modes.choices['OpenMM_from-equilibrated'].error('The parameters --pickle and --equilibrated_system are required.')
+            modes.choices['openmm-from-equilibrated'].error('The parameters --pickle and --equilibrated_system are required.')
         else:
             #all good
             pass
     elif args.mode == 'openmm-preparation':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
-            modes.choices['OpenMM_prepare'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+            modes.choices['openmm-prepare'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
@@ -96,15 +96,15 @@ def args_sanitation(parser, modes):
                 if 'gpu_id' in input_arguments: args.gpu_id =  str(input_arguments['gpu_id'])
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
             else:
-                modes.choices['OpenMM_prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+                modes.choices['openmm-prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
-            modes.choices['OpenMM_prepare'].error('The parameters --ligand, --interaction and --receptor are required.')
+            modes.choices['openmm-prepare'].error('The parameters --ligand, --interaction and --receptor are required.')
         else:
             # all good
             pass
     elif args.mode == 'from-amber':
         if (args.yaml_input is None) and (args.interaction is None or args.coordinates is None and args.topology is None):
-            modes.choices['OpenMM_from-amber'].error('The input needs to be either the input yaml or specified in the command line (topology, coordinates and interaction).')
+            modes.choices['openmm-from-amber'].error('The input needs to be either the input yaml or specified in the command line (topology, coordinates and interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['topology', 'interaction', 'coordinates', 'receptor']):
@@ -123,15 +123,15 @@ def args_sanitation(parser, modes):
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
 
             else:
-                modes.choices['OpenMM_from-amber'].error('You need to specify at least the amber topology and coordinates, a receptor and the interaction and a receptor file.')
+                modes.choices['openmm-from-amber'].error('You need to specify at least the amber topology and coordinates, a receptor and the interaction and a receptor file.')
         elif (args.interaction is None or args.topology is None or args.coordinates is None):
-            modes.choices['OpenMM_from-amber'].error('The parameters --topology, --coordinates, --interaction are required')
+            modes.choices['openmm-from-amber'].error('The parameters --topology, --coordinates, --interaction are required')
         else:
             #all good
             pass
     elif args.mode == 'Amber-preparation':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
-            modes.choices['AMBER_prepare'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
+            modes.choices['amber-prepare'].error('The input needs to be either the input yaml or specified in the command line (ligand, receptor interaction).')
         elif args.yaml_input:
             input_arguments = yaml.load(open(args.yaml_input), Loader=yaml.FullLoader)
             if all(item in list(input_arguments.keys()) for item in ['receptor_pdb', 'interaction', 'ligand_mol']):
@@ -159,11 +159,11 @@ def args_sanitation(parser, modes):
                 if 'threads' in input_arguments: args.threads = int(input_arguments['threads'])
                 if args.queue_template == 'local' and args.batch: args.queue_template = None # no local array script
                 if (not args.ligand.endswith('.sdf') and not args.ligand.endswith('.sd')) and args.batch:
-                    modes.choices['AMBER_prepare'].error('Batch processing needs the ligand in sd or sdf format.')
+                    modes.choices['amber-prepare'].error('Batch processing needs the ligand in sd or sdf format.')
             else:
-                modes.choices['AMBER_prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
+                modes.choices['amber-prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
-            modes.choices['AMBER_prepare'].error('The parameters --ligand, --interaction and --receptor are required.')
+            modes.choices['amber-prepare'].error('The parameters --ligand, --interaction and --receptor are required.')
         else:
             # all good
             pass
@@ -209,7 +209,7 @@ def parse_input():
     modes = parser.add_subparsers(title='Open Dynamic Undocking toolkit. Choose one of the following actions', help='', metavar='')
     
     #Arguments for OPENMM_PREPARATION
-    openmm_prep = modes.add_parser('openmm-prepare', help='Preparation of systems for OpenMM simulations')
+    openmm_prep = modes.add_parser('openmm-prepare', help='Preparation of systems for OpenMM simulations.')
     openmm_prep.set_defaults(mode='openmm-preparation')
     openmm_prep_main = openmm_prep.add_argument_group('Main arguments')
     openmm_prep_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for openMM preparation')
@@ -218,7 +218,7 @@ def parse_input():
     openmm_prep_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in pdb format used as receptor.')
     openmm_chunk = openmm_prep.add_argument_group('Chunking arguments')
     openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
-    openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
+    openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunking. Default = 9 A.')
     openmm_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     openmm_preprep = openmm_prep.add_argument_group('Parametrization arguments')
     openmm_preprep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
@@ -244,7 +244,7 @@ def parse_input():
     full_main.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
     openmm_chunk = full.add_argument_group('Chunking arguments')
     openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
-    openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
+    openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunking. Default = 9 A.')
     openmm_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     prep = full.add_argument_group('Parametrization arguments')
     prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
@@ -255,21 +255,21 @@ def parse_input():
     prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
     prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add hydrogens to carbon atoms.')
     prod = full.add_argument_group('MD/SMD Production arguments')
-    prod.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration')
-    prod.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
+    prod.add_argument('-F', '--force-constant_eq', type=float, default = 1, help='Force Constant for equilibration.')
+    prod.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom.')
     prod.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
-    prod.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations.')
-    prod.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
-    prod.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
+    prod.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations. If not set (Default), all smd-cycles will be calculated.')
+    prod.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating.')
+    prod.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD in A. Default = 2.5 A.')
     
     #Arguments for OpenMM form equilibrated system
-    equil = modes.add_parser('openmm-from-equilibrated', help='OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from duck_prepare_sys.py)')
+    equil = modes.add_parser('openmm-from-equilibrated', help='OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from duck_prepare_sys.py).')
     equil.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the openMM simulations from the equilibrated system.')
     equil.add_argument('-s', '--equilibrated-system', default=None, help='Equilibrated system as input (*.chk).')
     equil.add_argument('-p', '--pickle', default=None, help='Pickle output from preparation.')
     equil.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     equil.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
-    equil.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations.')
+    equil.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations. If not set (Default), all smd-cycles will be calculated.')
     equil.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
     equil.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
     equil.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
@@ -284,13 +284,13 @@ def parse_input():
     openmm_prmtop.add_argument('-r', '--receptor', type=str, default = None, help='Receptor .mol2 file')
     openmm_prmtop.add_argument('-n', '--smd-cycles', type=int, default = 20, help='Number of MD/SMD cycles to perfrom')
     openmm_prmtop.add_argument('-m', '--md-length', type=float, default=0.5, help='Lenght of md sampling between smd runs in ns.')
-    openmm_prmtop.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations.')
-    openmm_prmtop.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating')
-    openmm_prmtop.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
+    openmm_prmtop.add_argument('-W', '--wqb-threshold', type=float, default=None, help='Minimum WQB threshold to stop simulations. If not set (Default), all smd-cycles will be calculated.')
+    openmm_prmtop.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating.')
+    openmm_prmtop.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD in A. Default = 2.5 A.')
     openmm_prmtop.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
 
     #Arguments for OPENMM_PREPARATION
-    amber = modes.add_parser('amber-prepare', help='Preparation of systems, inputs and queue files for AMBER simulations')
+    amber = modes.add_parser('amber-prepare', help='Preparation of systems, inputs and queue files for AMBER simulations.')
     amber_main = amber.add_argument_group('Main arguments')
     amber.set_defaults(mode='Amber-preparation')
     amber_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the system preparation and inputs/queueing for AMBER.')
@@ -299,7 +299,7 @@ def parse_input():
     amber_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in pdb format used as receptor.')
     amber_chunk = amber.add_argument_group('Chunking arguments')
     amber_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
-    amber_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
+    amber_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunking. Default = 9 A.')
     amber_chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     amber_prep = amber.add_argument_group('Parametrization arguments')
     amber_prep.add_argument('-f', '--small_molecule_forcefield', type=str,  default = 'SMIRNOFF', choices=('SMIRNOFF', 'GAFF2'), help='Small Molecules forcefield.')
@@ -313,22 +313,22 @@ def parse_input():
     amber_prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein. Default = 10 A')
     amber_prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.')
     amber_prep.add_argument('--seed', default='-1', type=str, help='Specify seed for amber inputs.')
-    amber_prep.add_argument('-B', '--batch', default=False, action='store_true', help='Batch processing for multi-ligand sdf')
+    amber_prep.add_argument('-B', '--batch', default=False, action='store_true', help='Enable batch processing for multi-ligand sdf.')
     amber_prep.add_argument('-t', '--threads', default=1, type=int, help='Define number of cpus for batch processing.')
     amber_prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add hydrogens to carbon atoms.')
 
     #Arguments for report
     report = modes.add_parser('report', help='Generate report for openduck results.')
     report.set_defaults(mode='Report')
-    report.add_argument('-p', '--pattern', type=str, default='.', help='Wildcard pattern to find folders with DUck data')
+    report.add_argument('-p', '--pattern', type=str, default='.', help='Wildcard pattern to find folders with DUck data.')
     report.add_argument('-d', '--data', type=str, default='min', choices=('min', 'single', 'avg', 'jarzynski', 'all'), help='Mode to compile the report [min | single | avg | jarzynski | all]')
     report.add_argument('-o', '--output', default='stdout', help = 'Output file, default is printing report to stdout.')
     report.add_argument('-of', '--output-format', default='tbl', choices=('csv', 'sdf', 'tbl') , type=str, help='Output format, [csv | sdf | tbl].')
     report.add_argument('--plot', default=False, action='store_true', help='Plot work or energy values to file.')
     report.add_argument('-s', '--subsample-size', default=20, type=int, help='Subsample size for jarzynski bootstrapping.')
     report.add_argument('-i', '--iterations', default=20, type=int, help='Number of bootstrapping iterations for jarzynski analysis.')
-    report.add_argument('-t', '--step-threshold', default=2500, type=int, help='Steps_treshold to find the minima.')
-    report.add_argument('-f', '--format', type=str.lower, default='amber', choices=('amber', 'openmm'), help='Data where the results come from. Amber by default.')
+    report.add_argument('-t', '--step-threshold', default=2500, type=int, help='Step treshold to find the minima. Only needed with custom executions of DUck. Default = 2500 steps')
+    report.add_argument('-f', '--format', type=str.lower, default='amber', choices=('amber', 'openmm'), help='Engine where the results come from. Default = amber')
 
     #Arguments for chunk
     chunk = modes.add_parser('chunk', help='Chunk a protein for Dynamic Undocking.')
@@ -337,7 +337,7 @@ def parse_input():
     chunk.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     chunk.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
     chunk.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in pdb format used as receptor.')
-    chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
+    chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunking. Default = 9 A.')
     chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     chunk.add_argument('-o', '--output', type=str, default='protein_out.pdb',help='Output format for the chunked protein receptor.')
 
