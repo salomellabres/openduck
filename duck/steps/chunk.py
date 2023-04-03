@@ -7,7 +7,7 @@ from duck.utils.cal_ints import find_atom
 
 def return_tleap(prot_protein_chunk, out_save, disulfides=[]):
     '''
-    Generate the tleap input function for disulfite bonds
+    Generate the tleap input function for disulfide bonds
     '''
     param_f_path = pkg_resources.resource_filename(
         "duck", "parameters/tleap/leaprc.ff14SB.redq"
@@ -208,14 +208,14 @@ def remove_prot_buffers_alt_locs(prot_file):
     return output_file
 
 def find_disulfides(input_file, threshold=6.2):
-    '''Given a PDB file, find the cysteine residues to build disulfite bonds.
+    '''Given a PDB file, find the cysteine residues to build disulfide bonds.
 
     Args:
     input_file (str): Path to the protein structure PDB file.
     threshold (float): Distance threshold to define interacting cysteines
 
     Returns:
-        list: List of tupples for the two residue numbers in each disulfite bond detected.
+        list: List of tupples for the two residue numbers in each disulfide bond detected.
     '''
     structure = parmed.load_file(input_file)
     sulfurs = [x for x in structure.atoms if x.residue.name == "CYS" and x.name == "SG"]
