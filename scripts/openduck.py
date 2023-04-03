@@ -209,13 +209,13 @@ def parse_input():
     modes = parser.add_subparsers(title='Open Dynamic Undocking toolkit. Choose one of the following actions', help='', metavar='')
     
     #Arguments for OPENMM_PREPARATION
-    openmm_prep = modes.add_parser('OpenMM_prepare', help='Preparation of systems for OpenMM simulations')
+    openmm_prep = modes.add_parser('openmm-prepare', help='Preparation of systems for OpenMM simulations')
     openmm_prep.set_defaults(mode='openmm-preparation')
     openmm_prep_main = openmm_prep.add_argument_group('Main arguments')
     openmm_prep_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for openMM preparation')
     openmm_prep_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     openmm_prep_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
-    openmm_prep_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
+    openmm_prep_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in pdb format used as receptor.')
     openmm_chunk = openmm_prep.add_argument_group('Chunking arguments')
     openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
     openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
@@ -234,13 +234,13 @@ def parse_input():
     openmm_prepeq.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
 
     #Arguments for OpenMM full-protocol
-    full = modes.add_parser('OpenMM_full-protocol', help='OpenDuck OpenMM full protocol either with or without chunking the protein.')
+    full = modes.add_parser('openmm-full-protocol', help='OpenDuck OpenMM full protocol either with or without chunking the protein.')
     full.set_defaults(mode='full-protocol')
     full_main = full.add_argument_group('Main arguments')
     full_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the full openDUck protocol.')
     full_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     full_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
-    full_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
+    full_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in pdb format used as receptor.')
     full_main.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
     openmm_chunk = full.add_argument_group('Chunking arguments')
     openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
@@ -263,7 +263,7 @@ def parse_input():
     prod.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD')
     
     #Arguments for OpenMM form equilibrated system
-    equil = modes.add_parser('OpenMM_from-equilibrated', help='OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from duck_prepare_sys.py)')
+    equil = modes.add_parser('openmm-from-equilibrated', help='OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from duck_prepare_sys.py)')
     equil.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the openMM simulations from the equilibrated system.')
     equil.add_argument('-s', '--equilibrated-system', default=None, help='Equilibrated system as input (*.chk).')
     equil.add_argument('-p', '--pickle', default=None, help='Pickle output from preparation.')
@@ -275,7 +275,7 @@ def parse_input():
     equil.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
     equil.set_defaults(mode='from-equilibration')
 
-    openmm_prmtop = modes.add_parser('OpenMM_from-amber', help='OpenDuck openMM protocol starting from an amber topology and coordinates (prmtop and inpcrd).')
+    openmm_prmtop = modes.add_parser('openmm-from-amber', help='OpenDuck openMM protocol starting from an amber topology and coordinates (prmtop and inpcrd).')
     openmm_prmtop.set_defaults(mode='from-amber')
     openmm_prmtop.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the openMM simulations from the equilibrated system.')
     openmm_prmtop.add_argument('-c', '--coordinates', default=None, type=str, help='Amber input coordinates')
@@ -290,13 +290,13 @@ def parse_input():
     openmm_prmtop.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
 
     #Arguments for OPENMM_PREPARATION
-    amber = modes.add_parser('AMBER_prepare', help='Preparation of systems, inputs and queue files for AMBER simulations')
+    amber = modes.add_parser('amber-prepare', help='Preparation of systems, inputs and queue files for AMBER simulations')
     amber_main = amber.add_argument_group('Main arguments')
     amber.set_defaults(mode='Amber-preparation')
     amber_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the system preparation and inputs/queueing for AMBER.')
     amber_main.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     amber_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
-    amber_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
+    amber_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in pdb format used as receptor.')
     amber_chunk = amber.add_argument_group('Chunking arguments')
     amber_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
     amber_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
@@ -336,7 +336,7 @@ def parse_input():
     chunk.add_argument('-y', '--yaml-input', type=str, default=None, help='nput yaml file with the all the arguments for chunking.')
     chunk.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')
     chunk.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
-    chunk.add_argument('-r', '--receptor', type=str, default = None, help='Protein pdb file to chunk, or chunked protein if mode is "for_chunk".')
+    chunk.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in pdb format used as receptor.')
     chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunk.')
     chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     chunk.add_argument('-o', '--output', type=str, default='protein_out.pdb',help='Output format for the chunked protein receptor.')
@@ -487,7 +487,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
         p = pickle.load(f) + results
     with open('complex_system.pickle', 'wb') as f:
         pickle.dump(p, f, protocol=pickle.HIGHEST_PROTOCOL)
-    #p = (parmed_structure, prot_index, ligand_index, pairmeandistance)
+    #p is a tupple with the following objects inside (parmed_structure, prot_index, ligand_index, pairmeandistance)
     p[0].save('system_complex.inpcrd', overwrite=True)
 
     amber = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed)
@@ -522,7 +522,6 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
                                   forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
                                   box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand)
 
-    #os.chdir(f'..')
     return(f'Lig_target_{lig_indx} prepared correctly')
 
 #### main functions
