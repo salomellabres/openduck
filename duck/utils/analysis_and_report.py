@@ -284,7 +284,6 @@ def get_expavg_FD_df(work_df, T=300, calculate_FD=True):
     expBwork  = t_work.applymap(lambda x : exp(x*(-B)))
     N = len(work_df.columns) # Should be 5000 for DUck
 
-    #print(work_df.to_string())
     for rc, work_step in work_df.iterrows():
         #initialize variables to prevent errors in saving empty values
         expavg, sqrtMSE, MSE, Bj, v, av, ai, Wdis, average, variance, FD, sqrtMSE_FD = (np.NAN for x in range(12))
@@ -292,8 +291,7 @@ def get_expavg_FD_df(work_df, T=300, calculate_FD=True):
         #Normal statistics
         average  = np.mean(work_step.array)
         variance = np.var(work_step)
-        #print(expBwork.loc[:,rc])
-        #print(np.shape(expBwork.loc[:,rc]))
+
         #Boltzman average for the step
         expavg   = (-log(np.mean(expBwork.loc[:,rc])))/B
         if calculate_FD: # I have added the option to skip it, as it was giving some overflow float problems with very big dissipations during sampling
@@ -315,7 +313,6 @@ def get_expavg_FD_df(work_df, T=300, calculate_FD=True):
                 MSE_FD = 2*Wdis/(B*N)+(2*Wdis**2)/(N-1)
                 sqrtMSE_FD = MSE_FD**0.5
             except:
-                #print(ai, av)
                 pass
 
 

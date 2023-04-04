@@ -482,7 +482,6 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     
     # Now find the interaction and save to a file
     results = find_interaction(interaction, protein_file)
-    print(results) # what happens to these?
     with open('complex_system.pickle', 'rb') as f:
         p = pickle.load(f) + results
     with open('complex_system.pickle', 'wb') as f:
