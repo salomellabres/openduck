@@ -209,7 +209,7 @@ def parse_input():
     modes = parser.add_subparsers(title='Open Dynamic Undocking toolkit. Choose one of the following actions', help='', metavar='')
     
     #Arguments for OPENMM_PREPARATION
-    openmm_prep = modes.add_parser('openmm-prepare', help='Preparation of systems for OpenMM simulations.')
+    openmm_prep = modes.add_parser('openmm-prepare', help='Preparation of systems for OpenMM simulations.', description='Preparation of systems for Dynamic Undocking simulations in OpenMM. The ligand, receptor and solvation box are parametrized with the specified forcefields. If specified, the receptor is reduced to a chunked pocket and the system is equilibrated.')
     openmm_prep.set_defaults(mode='openmm-preparation')
     openmm_prep_main = openmm_prep.add_argument_group('Main arguments')
     openmm_prep_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for openMM preparation')
@@ -234,7 +234,7 @@ def parse_input():
     openmm_prepeq.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
 
     #Arguments for OpenMM full-protocol
-    full = modes.add_parser('openmm-full-protocol', help='OpenDuck OpenMM full protocol either with or without chunking the protein.')
+    full = modes.add_parser('openmm-full-protocol', help='OpenDuck full openMM protocol.', description='Full Dynamic Undocking protocol in openMM. The ligand, receptor and solvation box are parametrized with the specified parameters. If specified, the receptor is reduced to a chunked pocket. After equilibration, seriate iterations md and smd cycles are performed until the WQB or max_cycles threshold is reached.')
     full.set_defaults(mode='full-protocol')
     full_main = full.add_argument_group('Main arguments')
     full_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the full openDUck protocol.')
@@ -263,7 +263,7 @@ def parse_input():
     prod.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial HB distance for SMD in A. Default = 2.5 A.')
     
     #Arguments for OpenMM form equilibrated system
-    equil = modes.add_parser('openmm-from-equilibrated', help='OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from duck_prepare_sys.py).')
+    equil = modes.add_parser('openmm-from-equilibrated', help='OpenDuck openMM protocol starting from a pre-equilibrated system.', description='Dymamic Undocking starting from a pre-equilibrated system. An chk file from an equilibrated protein-ligand complex will be taken as input. After identifing the main a interaction, seriate iterations of md and smd cycles are performed until the WQB or max_cycles threshold is reached.')
     equil.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the openMM simulations from the equilibrated system.')
     equil.add_argument('-s', '--equilibrated-system', default=None, help='Equilibrated system as input (*.chk).')
     equil.add_argument('-p', '--pickle', default=None, help='Pickle output from preparation.')
@@ -275,7 +275,7 @@ def parse_input():
     equil.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
     equil.set_defaults(mode='from-equilibration')
 
-    openmm_prmtop = modes.add_parser('openmm-from-amber', help='OpenDuck openMM protocol starting from an amber topology and coordinates (prmtop and inpcrd).')
+    openmm_prmtop = modes.add_parser('openmm-from-amber', help='OpenDuck openMM protocol starting from an amber topology and coordinates.', description='OpenDuck openMM protocol starting from an amber topology and coordinates. Using the amber topology (prmtop) and coordinates (inpcrd), identifies the main interaction and perform seriate iterations of md and smd cycles are performed until the WQB or max_cycles threshold is reached.')
     openmm_prmtop.set_defaults(mode='from-amber')
     openmm_prmtop.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the openMM simulations from the equilibrated system.')
     openmm_prmtop.add_argument('-c', '--coordinates', default=None, type=str, help='Amber input coordinates')
@@ -290,7 +290,7 @@ def parse_input():
     openmm_prmtop.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID, if not specified, runs on CPU only.')
 
     #Arguments for OPENMM_PREPARATION
-    amber = modes.add_parser('amber-prepare', help='Preparation of systems, inputs and queue files for AMBER simulations.')
+    amber = modes.add_parser('amber-prepare', help='Preparation of systems, inputs and queue files for AMBER simulations.', description='Preparation of systems, inputs and queue files for AMBER simulations. The ligand, receptor and solvation box are parametrized with the specified parameters. If specified, the receptor is reduced to a chunked pocket for a faster production. The input and queue files are prepared from templates found in the duck/templates directory.')
     amber_main = amber.add_argument_group('Main arguments')
     amber.set_defaults(mode='Amber-preparation')
     amber_main.add_argument('-y', '--yaml-input', type=str, default = None, help='Input yaml file with the all the arguments for the system preparation and inputs/queueing for AMBER.')
@@ -318,7 +318,7 @@ def parse_input():
     amber_prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add hydrogens to carbon atoms.')
 
     #Arguments for report
-    report = modes.add_parser('report', help='Generate report for openduck results.')
+    report = modes.add_parser('report', help='Generate a report for openduck results.', description='Generate a table report for Dynamic Undocking output. For a multi-ligand report, use the pattern flag with wildcards to the directories.')
     report.set_defaults(mode='Report')
     report.add_argument('-p', '--pattern', type=str, default='.', help='Wildcard pattern to find folders with DUck data.')
     report.add_argument('-d', '--data', type=str, default='min', choices=('min', 'single', 'avg', 'jarzynski', 'all'), help='Mode to compile the report [min | single | avg | jarzynski | all]')
@@ -331,7 +331,7 @@ def parse_input():
     report.add_argument('-f', '--format', type=str.lower, default='amber', choices=('amber', 'openmm'), help='Engine where the results come from. Default = amber')
 
     #Arguments for chunk
-    chunk = modes.add_parser('chunk', help='Chunk a protein for Dynamic Undocking.')
+    chunk = modes.add_parser('chunk', help='Chunk a protein for Dynamic Undocking.', description='Reduce the receptor protein to a pocket by chunking it around the specified interaction. The aminoacids within a certain cutoff are considered part of the chunk and the protein segments are capped.')
     chunk.set_defaults(mode='Chunk')
     chunk.add_argument('-y', '--yaml-input', type=str, default=None, help='nput yaml file with the all the arguments for chunking.')
     chunk.add_argument('-l', '--ligand', type=str, default = None, help='ligand mol file to use as reference for interaction.')

@@ -38,19 +38,17 @@ Open Dynamic Undocking
 
 optional arguments:
   -h, --help            show this help message and exit
-  
+
 Open Dynamic Undocking toolkit. Choose one of the following actions:
   
     openmm-prepare      Preparation of systems for OpenMM simulations.
     openmm-full-protocol
-                        OpenDuck OpenMM full protocol either with or without chunking the protein.
+                        OpenDuck full openMM protocol.
     openmm-from-equilibrated
-                        OpenDuck openMM protocol starting from a pre-equilibrated system (e.g. from
-                        duck_prepare_sys.py).
-    openmm-from-amber   OpenDuck openMM protocol starting from an amber topology and coordinates
-                        (prmtop and inpcrd).
+                        OpenDuck openMM protocol starting from a pre-equilibrated system.
+    openmm-from-amber   OpenDuck openMM protocol starting from an amber topology and coordinates.
     amber-prepare       Preparation of systems, inputs and queue files for AMBER simulations.
-    report              Generate report for openduck results.
+    report              Generate a report for openduck results.
     chunk               Chunk a protein for Dynamic Undocking.
 ```
 
@@ -92,6 +90,10 @@ usage: openduck openmm-full-protocol [-h] [-y YAML_INPUT] [-l LIGAND] [-i INTERA
                                      [-water WATERS_TO_RETAIN] [-fl] [-F FORCE_CONSTANT_EQ]
                                      [-n SMD_CYCLES] [-m MD_LENGTH] [-W WQB_THRESHOLD]
                                      [-v INIT_VELOCITIES] [-d INIT_DISTANCE]
+
+Full Dynamic Undocking protocol in openMM. The ligand, receptor and solvation box are parametrized with the specified parameters.
+If specified, the receptor is reduced to a chunked pocket. After equilibration, seriate iterations md and smd cycles are performed until
+the WQB or max_cycles threshold is reached.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -151,7 +153,8 @@ MD/SMD Production arguments:
 A valid example is provided in the test subfolder, and can be executed using the command-line arguments like the following:
 
 ```{bash}
-$ openduck openmm-full-protocol -l brd4_lig.mol -r 4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 -g 0 -f GAFF2 -ff amber14-all -w tip3p -w 6 -n 20
+$ openduck openmm-full-protocol -l brd4_lig.mol -r 4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 \
+                                -g 0 -f GAFF2 -ff amber14-all -w tip3p -w 6 -n 20
 ```
 
 Similarly, an execution with the input parameters in a yaml is also possible (the example has slightly different parameters as the command line, just for ilustration purposes ).
@@ -253,6 +256,9 @@ usage: openduck openmm-from-amber [-h] [-y YAML_INPUT] [-c COORDINATES] [-t TOPO
                                   [-r RECEPTOR] [-n SMD_CYCLES] [-m MD_LENGTH] [-W WQB_THRESHOLD]
                                   [-v INIT_VELOCITIES] [-d INIT_DISTANCE] [-g GPU_ID]
 
+OpenDuck openMM protocol starting from an amber topology and coordinates. Using the amber topology (prmtop) and coordinates (inpcrd),
+identifies the main interaction and perform seriate iterations of md and smd cycles are performed until the WQB or max_cycles threshold is reached.
+
 optional arguments:
   -h, --help            show this help message and exit
   -y YAML_INPUT, --yaml-input YAML_INPUT
@@ -298,13 +304,81 @@ Originally Dynamic Undocking was designed to run in Amber, in OpenDUck we have m
 Preparation flags are very similar to those for OpenMM, as most of the implementation is shared.
 
 ```{bash}
-$ openduck amber-prepare -l ../1a28_lig.mol -r ../1a28_prot.pdb -i A_ARG_766_NH2 --do-chunk -c 10 -b False -f GAFF2 -ff amber99sb -w SPCE -ion 0.05 -s 11 --HMR -n 4 -W 4 -q Slurm
+$ openduck amber-prepare -h
+
+usage: openduck amber-prepare [-h] [-y YAML_INPUT] [-l LIGAND] [-i INTERACTION] [-r RECEPTOR] [--do-chunk] [-c CUTOFF]
+                              [-b] [-f {SMIRNOFF,GAFF2}] [-w {tip3p,spce,tip4pew}] [-q QUEUE_TEMPLATE] [-H]
+                              [-n SMD_CYCLES] [-W WQB_THRESHOLD] [-ff {amber99sb,amber14-all}] [-ion IONIC_STRENGTH]
+                              [-s SOLVENT_BUFFER_DISTANCE] [-water WATERS_TO_RETAIN] [--seed SEED] [-B] [-t THREADS]
+                              [-fl]
+
+Preparation of systems, inputs and queue files for AMBER simulations. The ligand, receptor and solvation box are
+parametrized with the specified parameters. If specified, the receptor is reduced to a chunked pocket for a faster
+production. The input and queue files are prepared from templates found in the duck/templates directory.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Main arguments:
+  -y YAML_INPUT, --yaml-input YAML_INPUT
+                        Input yaml file with the all the arguments for the system preparation and inputs/queueing for
+                        AMBER.
+  -l LIGAND, --ligand LIGAND
+                        ligand mol file to use as reference for interaction.
+  -i INTERACTION, --interaction INTERACTION
+                        Protein atom to use for ligand interaction.
+  -r RECEPTOR, --receptor RECEPTOR
+                        Protein or chunked protein in pdb format used as receptor.
+
+Chunking arguments:
+  --do-chunk            Chunk initial receptor based on the interaction with ligand and add cappings.
+  -c CUTOFF, --cutoff CUTOFF
+                        Cutoff distance to define chunking. Default = 9 A.
+  -b, --ignore-buffers  Do not remove buffers (solvent, ions etc.)
+
+Parametrization arguments:
+  -f {SMIRNOFF,GAFF2}, --small_molecule_forcefield {SMIRNOFF,GAFF2}
+                        Small Molecules forcefield.
+  -w {tip3p,spce,tip4pew}, --water-model {tip3p,spce,tip4pew}
+                        Water model to parametrize the solvent with.
+  -q QUEUE_TEMPLATE, --queue-template QUEUE_TEMPLATE
+                        Write out a queue file from templates.
+  -H, --HMR             Perform Hydrogen Mass Repartition on the topology and use it for the input files
+  -n SMD_CYCLES, --smd-cycles SMD_CYCLES
+                        Ammount of SMD replicas to perform
+  -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
+                        WQB threshold to stop the simulations
+  -ff {amber99sb,amber14-all}, --protein-forcefield {amber99sb,amber14-all}
+                        Protein forcefield to parametrize the chunked protein.
+  -ion IONIC_STRENGTH, --ionic-strength IONIC_STRENGTH
+                        Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M
+  -s SOLVENT_BUFFER_DISTANCE, --solvent-buffer-distance SOLVENT_BUFFER_DISTANCE
+                        Buffer distance between the periodic box and the protein. Default = 10 A
+  -water WATERS_TO_RETAIN, --waters-to-retain WATERS_TO_RETAIN
+                        PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.
+  --seed SEED           Specify seed for amber inputs.
+  -B, --batch           Enable batch processing for multi-ligand sdf.
+  -t THREADS, --threads THREADS
+                        Define number of cpus for batch processing.
+  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and
+                        add hydrogens to carbon atoms.
+
+
+```
+
+```{bash}
+$ openduck amber-prepare -l ../1a28_lig.mol -r ../1a28_prot.pdb -i A_ARG_766_NH2 \
+                         --do-chunk -c 10 -b False \
+                         -f GAFF2 -ff amber99sb -w SPCE -ion 0.05 -s 11 \
+                         --HMR -n 4 -W 4 -q Slurm
 ```
 
 Tipically, we Dynamic Undocking is employed as a post-docking filter in a virtual screening campaign. As such, multiple ligands might be generated at the time. A batch execution of the DUck preparation can be executed specifying the _--batch_ argument and giving an sdf file with multiple ligands as input. Each ligand and the associated file structure will be generated in the LIG_target_{n} subfolder where n is the ligand's position in the sdf.
 
 ```{bash}
-$ openduck amber-prepare -l ../brd4_ligands.sdf -r ../4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 --waters-to-retain ../waters_to_retain.pdb -f gaff2 -ff amber14-all -w spce -ion 1 -s 30 --HMR --smd-cycles 10 -wqb-threshold 8 -q SGE --seed 1235467890 --batch --threads 8
+$ openduck amber-prepare -l ../brd4_ligands.sdf -r ../4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 \
+                         --waters-to-retain ../waters_to_retain.pdb -f gaff2 -ff amber14-all -w spce -ion 1 -s 30
+                         --HMR --smd-cycles 10 -wqb-threshold 8 -q SGE --seed -1 --batch --threads 8
 ```
 
 The queueing template is stored in duck/templates/queueing_templates. To customize a template, a new file can be added in the directory with the following format: {queue_name}_array.q or {queue_name}.q either if the expected execution is in an array or not. For a local execution, the _local_ argument can be given for a plain list of commands.
@@ -333,6 +407,8 @@ When analyzing a single result, the default pattern is the current directory (.)
 $ openduck report -h
 
 usage: openduck report [-h] [-p PATTERN] [-d {min,single,avg,jarzynski,all}] [-o OUTPUT] [-of {csv,sdf,tbl}] [--plot] [-s SUBSAMPLE_SIZE] [-i ITERATIONS] [-t STEP_THRESHOLD] [-f {amber,openmm}]
+
+Generate a table report for Dynamic Undocking output. For a multi-ligand report, use the pattern flag with wildcards to the directories.
 
 optional arguments:
   -h, --help            show this help message and exit
