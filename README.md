@@ -4,7 +4,7 @@
 
 # Welcome to OpenDUck
 
-OpenDUck is an opensource implementation of Dynamic Undocking. Dynamic Undocking (DUck) is a particular application of steered molecular dynamics developed as a fast algorithm to calculate the work necessary to reach a quasi-bound state at which a certain netive contact is broken between the ligand and receptor. Due to its cheap and fast nature, DUck is mainly employed as a post-docking filter during virtual screening campaings.
+OpenDUck is an opensource implementation of Dynamic Undocking. Dynamic Undocking (DUck) is a particular application of steered molecular dynamics developed as a fast algorithm to calculate the work necessary to reach a quasi-bound state at which a certain native contact is broken between the ligand and receptor. Due to its cheap and fast nature, DUck is mainly employed as a post-docking filter during virtual screening campaings.
 
 Ruiz-Carmona, S., Schmidtke, P., Luque, F. et al. Dynamic undocking and the quasi-bound state as tools for drug discovery. Nature Chem 9, 201–206 (2017). https://doi.org/10.1038/nchem.2660 
 
