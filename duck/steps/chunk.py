@@ -6,6 +6,9 @@ from duck.utils.cal_ints import find_atom
 
 
 def return_tleap(prot_protein_chunk, out_save, disulfides=[]):
+    '''
+    Generate the tleap input function for disulfide bonds
+    '''
     param_f_path = pkg_resources.resource_filename(
         "duck", "parameters/tleap/leaprc.ff14SB.redq"
     )
@@ -29,14 +32,14 @@ savepdb mol """
 quit"""
     )
 
-
 def do_tleap(prot_protein_chunk, out_save, disulfides=[]):
-    # Now do tleap
+    '''
+    Launch tleap from ambertools
+    '''
     out_f = open("run.tleap", "w")
     out_f.write(return_tleap(prot_protein_chunk, out_save, disulfides))
     out_f.close()
-    os.system("tleap -f run.tleap")
-
+    os.system("tleap -f run.tleap > chunk_leap.log")
 
 def add_cap(x, atom_set):
     # Add the cap
@@ -46,8 +49,19 @@ def add_cap(x, atom_set):
         atom_set.add(y.idx)
     return atom_set
 
-
 def find_neighbour_residues(residues):
+    """
+    Given a list of residues, returns information about the neighboring residues and atoms in the molecule.
+
+    Args:
+        residues (list of Residue objects): a list of residues in the molecule
+
+    Returns:
+        A tuple of three elements:
+        - A dictionary where each residue in the input list is a key, and the corresponding value is a set of all residues that share a bond with at least one atom in that residue.
+        - A dictionary where each residue in the input list is a key, and the corresponding value is a set of all residues that share a bond with at least one atom in a residue that shares a bond with at least one atom in the key residue.
+        - A set of all atoms that are within 3 Angstroms of any atom in any residue in the input list.
+    """
     single_joins = {}
     double_joins = {}
     atom_set = set()
@@ -92,8 +106,19 @@ def find_neighbour_residues(residues):
         double_joins[resid] = double_res_set
     return single_joins, double_joins, atom_set
 
-
 def find_neighbours(residues):
+    """
+    Given a set of residues, returns a all residues that share a bond with at least one atom in any of the input residues,
+    as well as a set of all atoms that are within 3 Angstroms of any atom in any of the input residues.
+
+    Args:
+        residues (set of Residue objects): a set of residues in the molecule
+
+    Returns:
+        A tuple of two elements:
+        - A set of all residues that share a bond with at least one atom in any of the input residues, including residues that are connected indirectly via a second-degree bond.
+        - A set of all atoms that are within 3 Angstroms of any atom in any of the input residues.
+    """
     single_joins, double_joins, atom_set = find_neighbour_residues(residues)
     new_residues = set()
     for resid_one in single_joins:
@@ -114,8 +139,22 @@ def find_neighbours(residues):
                 new_residues.add(new_res)
     return new_residues, atom_set
 
-
 def convert_to_ace_nme(subset):
+    """
+    Given a subset of a molecule, converts some residues to ACE or NME, depending on their atom types and names. Specifically:
+    - If a residue has exactly three atoms (CA, C, and O) with these names, its name is changed to ACE and its CA atom is renamed to CH3.
+    - If a residue has exactly three atoms (CA, CD, and N) with these names, its name is changed to NME, its CA atom is renamed to CH3, and its CD atom is removed from the molecule.
+    - If a residue has exactly two atoms (CA and N) with these names, its name is changed to NME and its CA atom is renamed to CH3.
+    - If a residue has exactly two atoms (CB and SG) with these names, it is removed from the molecule.
+    
+    Any atoms or residues that are removed during this process are excluded from the output subset.
+
+    Args:
+        subset (PDB subset): a subset of a PDB molecule, as returned by the `pandasPdb.subset()` method.
+
+    Returns:
+        A modified version of the input subset, where some residues may have been renamed to ACE or NME, and some atoms or residues may have been removed.
+    """
     remove_res_ids = []
     remove_atom_ids = []
     for residue in subset.residues:
@@ -147,8 +186,18 @@ def convert_to_ace_nme(subset):
         subset = subset["!(:" + ",".join(remove_res_ids) + ")"]
     return subset
 
-
 def remove_prot_buffers_alt_locs(prot_file):
+    """
+    Cleans up a protein structure PDB file by removing hydrogen atoms, solvents, and buffers. 
+    Writes the modified protein structure to a new PDB file with a consistent alternate location convention. 
+
+    Args:
+        prot_file (str): Path to the protein structure PDB file.
+
+    Returns:
+        str: Path to the new PDB file with the cleaned-up protein structure.
+    """
+
     output_file = "no_buffer_altlocs.pdb"
     solvents = ["NA", "CL", "SO4", "EDO", "FMT", "P04", "DMS", "EPE"]
     # Remove hydrogens and solvents and buffers
@@ -158,8 +207,16 @@ def remove_prot_buffers_alt_locs(prot_file):
     protein.write_pdb(output_file, altlocs="first")
     return output_file
 
-
 def find_disulfides(input_file, threshold=6.2):
+    '''Given a PDB file, find the cysteine residues to build disulfide bonds.
+
+    Args:
+    input_file (str): Path to the protein structure PDB file.
+    threshold (float): Distance threshold to define interacting cysteines
+
+    Returns:
+        list: List of tupples for the two residue numbers in each disulfide bond detected.
+    '''
     structure = parmed.load_file(input_file)
     sulfurs = [x for x in structure.atoms if x.residue.name == "CYS" and x.name == "SG"]
     #sulfurs = [x for x in structure.atoms if (x.residue.name == "CYS" or x.residue.name == "CYX") and x.name == "SG"]
@@ -176,14 +233,15 @@ def find_disulfides(input_file, threshold=6.2):
     structure.write_pdb(input_file)
     return disulfides
 
-
 def find_res_idx(protein, chain, res_name, res_num):
+    '''
+    Given a protein object, a chain, the residue name and number, return the atom index.
+    '''
     for residue in protein.residues:
         if residue.chain == chain:
             if residue.name == res_name:
                 if residue.number == res_num:
                     return residue.idx + 1
-
 
 def chunk_with_amber(
     mol_file="MURD-x0349.mol",
@@ -193,6 +251,19 @@ def chunk_with_amber(
     cutoff=9.0,
     orig_prot="MURD-x0349_apo.pdb",
 ):
+    '''
+    Chunk the protein into a smaller subset based on a cutoff radius around the given interaction.
+
+    Args:
+        mol_file (str): Path to the .mol file containing the ligand molecule.
+        prot_file (str): Path to the .pdb file containing the protein structure.
+        interaction (str): Interaction to consider for chunking, in the format of "chain_residue_atom".
+        out_save (str): Path to save the output .pdb file.
+        cutoff (float): Cutoff distance (in angstroms) for selecting atoms in the protein.
+        orig_prot (str): Path to the original .pdb file used to generate the protein.
+
+    Returns a list containing the path to the output .pdb file.
+    '''
     # Load up the topology
     mol = Chem.MolFromMolFile(mol_file)
     pdb_mol_file = mol_file.replace(".mol", ".pdb")
@@ -223,8 +294,10 @@ def chunk_with_amber(
     add_ter_records(out_save, out_save)
     return [out_save]
 
-
 def prot_with_pdb_fixer(chunk_protein, chunk_prot_protein):
+    '''
+    Launch pdbfixer with `chunk_protein` specifying the output in `chunk_prot_protein`
+    '''
     os.system(
         "pdbfixer "
         + chunk_protein
@@ -233,8 +306,14 @@ def prot_with_pdb_fixer(chunk_protein, chunk_prot_protein):
     )
     return [chunk_prot_protein]
 
-
 def add_ter_records(input_file, output_file):
+    '''
+    Add 'TER' tag to pdb where the NME residue appears
+
+    Args
+        input_file (str): input chunked protein in .pdb to add TER tags
+        output_file (str): output pdb file with the TER tags
+    '''
     lines = open(input_file).readlines()
     output_f = open(output_file, "w")
     for line in lines:
@@ -243,6 +322,34 @@ def add_ter_records(input_file, output_file):
             output_f.write("TER\n")
     return [output_file]
 
+def duck_chunk(prot_file, mol_file, interaction, cutoff, output_name = 'protein_out.pdb', ignore_buffers=False):
+    """
+    Performs chunking of a protein structure in the presence of a small molecule within a cutoff radius.
+
+    Args:
+        prot_file (str): Path to the protein structure PDB file.
+        mol_file (str): Path to the small molecule file.
+        interaction (str): Name of the interaction between the small molecule and the protein.
+        cutoff (float): Cutoff distance (in Angstroms) for chunking the small molecule into the protein.
+        output_name (str, optional): Name of the output protein PDB file after chunking and protonation. Defaults to 'protein_out.pdb'.
+        ignore_buffers (bool, optional): Whether to ignore buffers and alternative locations in the protein PDB file. Defaults to False.
+
+    Returns:
+        str: Path to the output protein PDB file after chunking and protonation.
+    """
+    orig_file = prot_file
+
+    chunk_protein_prot = f'protonated_{output_name}'
+    # Do the removal of buffer mols and alt locs
+    if not ignore_buffers:
+        prot_file = remove_prot_buffers_alt_locs(prot_file)
+    # Do the chunking and the protonation
+    # Chunk
+    chunk_with_amber(mol_file,prot_file,interaction,output_name,cutoff,orig_file)
+    # Protontate
+    disulfides = find_disulfides(output_name)
+    do_tleap(output_name, chunk_protein_prot, disulfides)
+    return chunk_protein_prot
 
 if __name__ == "__main__":
     mol_file = "MURD-x0349.mol"

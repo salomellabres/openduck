@@ -15,18 +15,18 @@ with open(path.join(here, "README.rst"), encoding="utf-8") as f:
 
 print((find_packages(exclude=["contrib", "docs", "tests"])))
 setup(
-    name="duck-xchem",
+    name="openduck",
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="0.1.0",
-    description="Library for running Dynamic Undokcing",
+    version="0.2.0",
+    description="Application for running Dynamic Undocking",
     long_description=long_description,
     # The project's main homepage.
-    url="https://github.com/xchem/duck.git",
+    url="https://github.com/CBDD/openduck.git",
     # Author details
-    author="Anthony Bradley",
-    author_email="anthony.richard.bradley@gmail.com",
+    author="Alvaro Serrano, Mihaela Sminova, Simon Bray, Anthony Bradley",
+    author_email="alvaro.serrano.morras@gmail.com",
     # Choose your license
     license="Apache 2.0",
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -87,10 +87,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         "console_scripts": [
-            "frag_duck=scripts.run_full_from_fragalysis:main",
-            "get_wqb=scripts.get_wqb:main",
-            "duck_prepare_sys_for_amber=scripts.duck_prepare_sys_for_amber:main",
-            "getWqbValues=getWqbValues:main"
-        ] # TODO: add full set of scripts when known
+            "openduck=scripts.openduck:main",
+        ]
     },
 )
