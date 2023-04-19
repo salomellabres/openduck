@@ -6,11 +6,11 @@ min_wqb={wqb_threshold}
 #### Runing Duck ####
 # Minimization&Equilibration
 pmemd.cuda -O -i 1_min.in -o min.out -p {top} -c system_complex.inpcrd -r min.rst -ref system_complex.inpcrd
-pmemd.cuda -O -i 2_heat150.in -o 2_heat150.out -p {top} -c min.rst -r  2_heat150.rst -x 2_heat150.nc -ref system_complex.inpcrd
-pmemd.cuda -O -i 2_heat200.in -o 2_heat200.out -p {top} -c 2_heat150.rst -r 2_heat200.rst -x 2_heat200.nc -ref 2_heat150.rst
-pmemd.cuda -O -i 2_heat250.in -o 2_heat250.out -p {top} -c 2_heat200.rst -r 2_heat250.rst -x 2_heat250.nc -ref 2_heat200.rst
-pmemd.cuda -O -i 2_heat300.in -o 2_heat300.out -p {top} -c 2_heat250.rst -r 2_heat300.rst -x 2_heat300.nc -ref 2_heat250.rst
-pmemd.cuda -O -i 3_eq.in -o 3_eq.out -p {top} -c 2_heat300.rst -r 3_eq.rst -x 3_eq.nc -ref 2_heat300.rst -e 3_eq.ene
+pmemd.cuda -O -i 2_heating150.in -o 2_heating150.out -p {top} -c min.rst -r  2_heating150.rst -x 2_heating150.nc -ref system_complex.inpcrd
+pmemd.cuda -O -i 2_heating200.in -o 2_heating200.out -p {top} -c 2_heating150.rst -r 2_heating200.rst -x 2_heating200.nc -ref 2_heating150.rst
+pmemd.cuda -O -i 2_heating250.in -o 2_heating250.out -p {top} -c 2_heating200.rst -r 2_heating250.rst -x 2_heating250.nc -ref 2_heating200.rst
+pmemd.cuda -O -i 2_heating300.in -o 2_heating300.out -p {top} -c 2_heating250.rst -r 2_heating300.rst -x 2_heating300.nc -ref 2_heating250.rst
+pmemd.cuda -O -i 3_eq.in -o 3_eq.out -p {top} -c 2_heating300.rst -r 3_eq.rst -x 3_eq.nc -ref 2_heating300.rst -e 3_eq.ene
 
 #Launch DUck 0 and check wqb
 prepare_duck_and_launch 0 0 300K

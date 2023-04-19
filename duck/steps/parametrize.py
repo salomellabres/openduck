@@ -12,6 +12,16 @@ from pathlib import Path
 
 
 def find_box_size(input_file="complex.pdb", add_factor=20):
+    """
+    Find the size of a cubic box that can contain the input complex.
+
+    Args:
+        input_file (str): The path to the input PDB file containing the complex.
+        add_factor (float): The additional space (in Angstroms) to add to the maximum dimension of the complex.
+
+    Returns:
+        int: The size (in Angstroms) of the cubic box that can contain the complex.
+    """
     complex = parmed.load_file(input_file)
     x_coords = [x[0] for x in complex.positions]
     y_coords = [x[1] for x in complex.positions]
@@ -22,9 +32,42 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     val_in_ang = max(x_size, y_size, z_size) + add_factor * unit.angstrom
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
 
-
 def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1, waters_to_retain="waters_to_retain.pdb", fix_ligand_file=False):
+    """
+    Prepares a protein-ligand system by loading and modifying molecular structures and parameters,
+    solvating the system in its water box, and parameterizing ions and solvent using the specified force fields.
 
+    Parameters
+    ----------
+    ligand_file : str
+        The name of the file containing the ligand structure to be prepared.
+    protein_file : str
+        The name of the file containing the protein structure to be prepared.
+    forcefield_str : str, optional
+        The name of the force field file to use for protein and ions parameterization, by default "amber99sb.xml".
+    water_ff_str : str, optional
+        The name of the force field file to use for water parameterization, by default "tip3p".
+    hmr : bool, optional
+        Whether to use hydrogen mass repartitioning for simulation, by default False.
+    small_molecule_ff : str, optional
+        The name of the force field to use for ligand parameterization, by default "SMIRNOFF".
+    box_buffer_distance : float, optional
+        The buffer distance to use for box creation, in angstroms, by default 10.
+    ionicStrength : float, optional
+        The ionic strength to use for solvation, by default 0.1 M.
+    waters_to_retain : str, optional
+        The name of a PDB file containing the water molecules to retain during solvation, by default "waters_to_retain.pdb".
+
+    Returns
+    -------
+    parmed.Structure
+        The prepared system structure containing the protein, ligand, solvent, and ions.
+
+    Raises
+    ------
+    Exception
+        If an unsupported small molecule force field is specified or if an unsupported water model is specified.
+    """
     #Do not put ESPALOMA yet, as it is not on the conda release of openmmforcefields yet, The function is already prepared
     #FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK, 'ESPALOMA': generateEspalomaFFStructureRDK}
     FF_generators = {'SMIRNOFF': generateSMIRNOFFStructureRDK, 'GAFF2': generateGAFFStructureRDK}
@@ -90,8 +133,8 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
     print("Parametrizing ions")
     complex = parmed.load_file("./complex_solvated.pdb")
     ions = complex["(:NA,CL)"]
-    forcefield = app.ForceField(forcefield_str)
-    ions_system = forcefield.createSystem(ions.topology)
+    ions_forcefield = app.ForceField('amber99sb.xml')
+    ions_system = ions_forcefield.createSystem(ions.topology)
     ions_pmd = parmed.openmm.load_topology(ions.topology, ions_system, ions.positions)
     print("Parametrizing ions done")
     print(f"Parametrizing solvent using {water_ff_str}")

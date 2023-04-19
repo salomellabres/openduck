@@ -5,8 +5,10 @@ import operator
 import parmed
 import math
 
-
 def check_same(atom, chain, res_name, res_number, atom_name):
+    '''
+    Check if the atom object corresponds to the chain, residue_name, residue number and atom name
+    '''
     if atom.residue.name == res_name:
         if atom.residue.number == res_number:
             if atom.name == atom_name:
@@ -14,14 +16,15 @@ def check_same(atom, chain, res_name, res_number, atom_name):
                     return True
     return False
 
-
 def is_lig(atom):
     # Non-hydrogen
     if atom.residue.name == "UNL" and atom.atomic_number > 1:
         return True
 
-
 def find_atom(res_atom=None, prot_file=None, combined_pmd=None):
+    '''
+    Parse the combined_system pickle and protein file to find the atom id based on the interaction string in this format 'chain_resname_resid_atomname' (i.e. "A_LYS_311_N")
+    '''
     # Parse the input data like this -> "A_LYS_311_N"
     chain = res_atom.split("_")[0]
     res_name = res_atom.split("_")[1]
@@ -40,7 +43,6 @@ def find_atom(res_atom=None, prot_file=None, combined_pmd=None):
     distance_atom_1.sort(key=operator.itemgetter(1))
     return distance_atom_1, prot_atom
 
-
 def find_result(res_atom=None, prot_file=None, combined_pmd=None):
     # Find the
     distance_atom_1, prot_atom = find_atom(res_atom, prot_file, combined_pmd)
@@ -56,8 +58,10 @@ def find_result(res_atom=None, prot_file=None, combined_pmd=None):
     out_res = [index_one, index_two, math.sqrt(distance_atom_2[0][1])]
     return index_one, index_two, out_res, distance_atom_2[0][1]
 
-
 def find_interaction(res_atom=None, prot_file=None):
+    '''
+    Find interaction atom based on the protein_file and the interaction string in this format 'chain_resname_resid_atomname' (i.e. "A_LYS_311_N")
+    '''
     output_file = "indice.text"
     if not res_atom or prot_file:
         if os.path.isfile(output_file):
@@ -73,6 +77,65 @@ def find_interaction(res_atom=None, prot_file=None):
     out_f.close()
     return [index_one, index_two, math.sqrt(dist)]
 
+def find_interaction_amber_input(combined_pmd, chunk_file, res_atom):
+    '''
+    Find interaction atom based on the protein_file and amber topology and the interaction string in this format 'chain_resname_resid_atomname' (i.e. "A_LYS_311_N")
+    '''
+    chunk = parmed.load_file(chunk_file, structure=True)
+    if chunk_file.split('.')[-1]== 'mol2':
+        rename_mol2_residues(chunk)
+
+    chain = '' # chain information gets lost in the chunk
+    res_name = res_atom.split("_")[1]
+    res_number = int(res_atom.split("_")[2])
+    atom_name = res_atom.split("_")[-1]
+
+    for atom in chunk.atoms:
+        # chain information gets lost in the chunking process, which is expected. Maybe need a check to make sure
+        if check_same(atom, chain, res_name, res_number, atom_name):
+            #print(atom.name, atom.residue.name)
+            chunk_atom = atom
+            break
+    if 'chunk_atom' not in locals():
+        raise ValueError('Cannot find the interaction atom in the chunk. Check residue labelling')
+    else:
+        # Find the positions of the protein atoms in the combined_system atoms and the chunk
+        # chunk_dict = chunk_residue_number: combined_pmd_residue_number
+        chunk_dict = {}
+        for cd, cr in zip(combined_pmd.residues, chunk.residues):
+            chunk_dict[cr.number] = cd.number
+        for atom in combined_pmd.atoms:
+            if check_same(atom, chain, res_name, chunk_dict[chunk_atom.residue.number], atom_name):
+                #print(atom.name, atom.residue.name)
+                target_protein_atom = atom
+                break
+        if 'target_protein_atom' not in locals():
+            raise ValueError('Cannot find the interaction atom in the prepared system. Check residue labelling')
+        
+        index_one = target_protein_atom.idx
+        distance_atom_2 = [(x.idx, distance2(x, target_protein_atom)) for x in combined_pmd.atoms if is_lig(x)]
+        distance_atom_2.sort(key=operator.itemgetter(1))
+        index_two = distance_atom_2[0][0]
+        dist = distance_atom_2[0][1]
+
+        output_file='indice.txt'
+        out_f = open(output_file, "w")
+        out_f.write(json.dumps([index_one, index_two, math.sqrt(dist)]))
+        out_f.close()
+
+        return [index_one, index_two, math.sqrt(dist)]
+
+def rename_mol2_residues(parmed_protein):
+    """
+    Crashes with altlocs currently...
+    :param parmed_protein:
+    :return:
+    """
+    for r in parmed_protein.residues:
+        res_name = r.name[:3]
+        true_res_number = int(r.name[3:])
+        r.name = res_name
+        r.number += true_res_number - r.number
 
 if __name__ == "__main__":
     # Define the input
