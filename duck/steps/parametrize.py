@@ -191,6 +191,7 @@ def fix_ligand(ligand_file, fixed_ligand_file):
     fixed_mol = Chem.AddHs(mol, addCoords=True, onlyOnAtoms=[atom.GetIdx() for atom in mol.GetAtoms() if atom.GetSymbol() == 'C'])
     sdwriter = Chem.SDWriter(fixed_ligand_file)
     sdwriter.write(fixed_mol)
+    sdwriter.close()
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
