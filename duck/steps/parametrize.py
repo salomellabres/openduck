@@ -188,9 +188,10 @@ def fix_ligand(ligand_file, fixed_ligand_file):
             if atom.GetSymbol() == 'N' and atom.GetFormalCharge() == 0 and atom.GetExplicitValence() == 4:
                 atom.SetFormalCharge(1)
     Chem.SanitizeMol(mol)
-    fixed_mol = Chem.AddHs(mol, addCoords=True, onlyOnAtoms=[atom.GetIdx() for atom in mol.GetAtoms() if atom.GetSymbol() == 'C'])
+    fixed_mol = Chem.AddHs(mol, addCoords=True)
     sdwriter = Chem.SDWriter(fixed_ligand_file)
     sdwriter.write(fixed_mol)
+    sdwriter.close()
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
