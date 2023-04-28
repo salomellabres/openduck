@@ -4,7 +4,7 @@
 
 # Welcome to OpenDUck
 
-OpenDUck is an open-source implementation of dynamic undocking (DUck), is an application of steered molecular dynamics developed as a fast algorithm to calculate the work necessary to reach a quasi-bound state, at which a certain native contact is broken between the ligand and receptor. Due to its cheap and fast nature, DUck is mainly employed as a post-docking filter during virtual screening campaings.
+OpenDUck is an open-source implementation of dynamic undocking (DUck), an application of steered molecular dynamics developed as a fast algorithm to calculate the work necessary to reach a quasi-bound state, at which a certain native contact is broken between the ligand and receptor. Due to its cheap and fast nature, DUck is mainly employed as a post-docking filter during virtual screening campaings.
 
 More details can be found in the original dynamic undocking publication:
 
@@ -12,7 +12,7 @@ More details can be found in the original dynamic undocking publication:
 
 ## Installation
 
-### Conda
+### Conda (update)
 
 We recommend you install OpenDUck into a fresh Conda environment.
 ```{bash}
@@ -36,21 +36,21 @@ $ openduck -h
 
 usage: openduck [-h]  ...
 
-Open dynamic undocking
+Open-source toolkit for dynamic undocking.
 
 optional arguments:
   -h, --help            show this help message and exit
 
-Open dynamic undocking toolkit. Choose one of the following actions:
+Open-source dynamic undocking toolkit. Choose one of the following actions::
 
     openmm-prepare      Preparation of systems for OpenMM simulations.
     openmm-full-protocol
-                        OpenDuck full openMM protocol.
+                        OpenDUck full OpenMM protocol.
     openmm-from-equilibrated
-                        OpenDuck openMM protocol starting from a pre-equilibrated system.
-    openmm-from-amber   OpenDuck openMM protocol starting from an amber topology and coordinates.
+                        OpenDUck OpenMM protocol starting from a pre-equilibrated system.
+    openmm-from-amber   OpenDUck OpenMM protocol starting from an AMBER topology and coordinates.
     amber-prepare       Preparation of systems, inputs and queue files for AMBER simulations.
-    report              Generate a report for openduck results.
+    report              Generate a report for OpenDUck results.
     chunk               Chunk a protein for dynamic undocking.
 ```
 
@@ -62,14 +62,14 @@ The arguments in the input.yaml are expected to follow the command-line nomencla
 The OpenMM implementation of OpenDUck is divided in two steps: the preparation using `openmm_forcefields` and the production (MD/SMD) following the dynamic undocking protocol.
 During the preparation step, the protein is reduced to the pocket region during the _chunking_ step, then the ligand and receptor are parametrized and the solvation box is generated. After equilibration, the sequential MD/SMD simulations, sampling and steering the main interaction from the specified distances, are run in OpenMM.
 
-The openMM submodules are setup to allow independent usage of the previously mentioned steps:
+The openMM submodules are set up to allow independent usage of the previously mentioned steps:
 
     * `openmm-full-protocol`: Executes the full OpenDuck protocol, from the protein-ligand files to the steered simulations
     * `openmm-prepare`: Executes only the preparation and equilibration of the protein-ligand complex
     * `openmm-from-equilibrated`: Executes only the production of MD/SMD runs from an equilibrated input.
     * `openmm-from-amber`: Starts the openDuck simulations from an AMBER topology.
 
-#### Openmm-full-protocol
+#### openmm-full-protocol
 
 The complete OpenDUck protocol through OpenMM can be executed using the `openmm-full-protocol` submodule.
 The full protocol executes the following steps:
@@ -85,71 +85,70 @@ The full protocol executes the following steps:
 ```{bash}
 $ openduck openmm-full-protocol -h
 
-usage: openduck openmm-full-protocol [-h] [-y YAML_INPUT] [-l LIGAND] [-i INTERACTION] [-r RECEPTOR]
-                                     [-g GPU_ID] [--do-chunk] [-c CUTOFF] [-b] [-f {SMIRNOFF,GAFF2}]
-                                     [-w {tip3p,spce}] [-ff {amber99sb,amber14-all}]
-                                     [-ion IONIC_STRENGTH] [-s SOLVENT_BUFFER_DISTANCE]
-                                     [-water WATERS_TO_RETAIN] [-fl] [-F FORCE_CONSTANT_EQ]
-                                     [-n SMD_CYCLES] [-m MD_LENGTH] [-W WQB_THRESHOLD]
+usage: openduck openmm-full-protocol [-h] [-y YAML_INPUT] [-l LIGAND] [-i INTERACTION] [-r RECEPTOR] [-g GPU_ID]
+                                     [--do-chunk] [-c CUTOFF] [-b] [-f {SMIRNOFF,GAFF2}] [-w {tip3p,spce}]
+                                     [-ff {amber99sb,amber14-all}] [-ion IONIC_STRENGTH]
+                                     [-s SOLVENT_BUFFER_DISTANCE] [-water WATERS_TO_RETAIN] [-fl]
+                                     [-F FORCE_CONSTANT_EQ] [-n SMD_CYCLES] [-m MD_LENGTH] [-W WQB_THRESHOLD]
                                      [-v INIT_VELOCITIES] [-d INIT_DISTANCE]
 
-Full dynamic undocking protocol in openMM. The ligand, receptor and solvation box are parametrized with the specified parameters.
-If specified, the receptor is reduced to a chunked pocket. After equilibration, seriate iterations md and smd cycles are performed until
-the WQB or max_cycles threshold is reached.
+Full dynamic undocking protocol in OpenMM. The ligand, receptor and solvation box are parameterized with the
+specified parameters. If specified, the receptor is reduced to a chunked pocket. After equilibration, serial
+iterations of MD and SMD are performed until the WQB or max_cycles threshold is reached.
 
 optional arguments:
   -h, --help            show this help message and exit
 
 Main arguments:
   -y YAML_INPUT, --yaml-input YAML_INPUT
-                        Input yaml file with the all the arguments for the full openDUck protocol.
+                        Input yaml file with all the arguments for the full OpenDUck protocol.
   -l LIGAND, --ligand LIGAND
-                        ligand mol file to use as reference for interaction.
+                        Ligand MOL file to use as reference for interaction.
   -i INTERACTION, --interaction INTERACTION
                         Protein atom to use for ligand interaction.
   -r RECEPTOR, --receptor RECEPTOR
-                        Protein or chunked protein in pdb format used as receptor.
+                        Protein or chunked protein in PDB format used as receptor.
   -g GPU_ID, --gpu-id GPU_ID
-                        GPU ID, if not specified, runs on CPU only.
+                        GPU ID; if not specified, runs on CPU only.
 
 Chunking arguments:
   --do-chunk            Chunk initial receptor based on the interaction with ligand and add cappings.
   -c CUTOFF, --cutoff CUTOFF
-                        Cutoff distance to define chunk.
+                        Cutoff distance to define chunking (in Angstroms). Default = 9 A.
   -b, --ignore-buffers  Do not remove buffers (solvent, ions etc.)
 
-Parametrization arguments:
+Parameterization arguments:
   -f {SMIRNOFF,GAFF2}, --small_molecule_forcefield {SMIRNOFF,GAFF2}
-                        Small Molecules forcefield.
+                        Small molecule forcefield to use for parameterization.
   -w {tip3p,spce}, --water-model {tip3p,spce}
-                        Water model to parametrize the solvent with.
+                        Water model to parameterize the solvent.
   -ff {amber99sb,amber14-all}, --protein-forcefield {amber99sb,amber14-all}
-                        Protein forcefield to parametrize the chunked protein.
+                        Protein forcefield to parameterize the chunked protein.
   -ion IONIC_STRENGTH, --ionic-strength IONIC_STRENGTH
-                        Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default =
-                        0.1 M
+                        Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default = 0.1 M
   -s SOLVENT_BUFFER_DISTANCE, --solvent-buffer-distance SOLVENT_BUFFER_DISTANCE
-                        Buffer distance between the periodic box and the protein. Default = 10 A
+                        Buffer distance between the periodic box and the protein (in Angstroms). Default = 10 A
   -water WATERS_TO_RETAIN, --waters-to-retain WATERS_TO_RETAIN
-                        PDB File with structural waters to retain water moleules. Default is
+                        PDB file containing structural water molecules to retain during simulations. Default is
                         waters_to_retain.pdb.
-  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right
-                        charge assigned and add hydrogens to carbon atoms.
+  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge
+                        assigned and add missing hydrogen atoms.
 
-MD/SMD Production arguments:
+MD/SMD production arguments:
   -F FORCE_CONSTANT_EQ, --force-constant_eq FORCE_CONSTANT_EQ
-                        Force Constant for equilibration.
+                        Force constant for equilibration.
   -n SMD_CYCLES, --smd-cycles SMD_CYCLES
-                        Number of MD/SMD cycles to perfrom.
+                        Number of MD/SMD cycles to perform.
   -m MD_LENGTH, --md-length MD_LENGTH
-                        Lenght of md sampling between smd runs in ns.
+                        Length of MD sampling between SMD runs in ns.
   -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
-                        Minimum WQB threshold to stop simulations. If not set (Default), all smd-cycles
-                        will be calculated.
+                        Minimum WQB threshold; if not reached after each SMD cycle, further simulations will be
+                        terminated. If not set (default), all SMD cycles will be run.
   -v INIT_VELOCITIES, --init-velocities INIT_VELOCITIES
                         Set initial velocities when heating.
   -d INIT_DISTANCE, --init-distance INIT_DISTANCE
-                        Set initial HB distance for SMD in A. Default = 2.5 A.
+                        Set initial hydrogen bond distance for SMD in Angstroms. Default = 2.5 A.
+
 ```
 A valid example is provided in the test subfolder, and can be executed using the command-line arguments like the following:
 
@@ -193,7 +192,7 @@ init_distance : 2.5
 fix_ligand : False
 ```
 
-#### OpenMM-prepare & OpenMM-from-equilibrated
+#### openmm-prepare & openmm-from-equilibrated
 
 The OpenDUck protocol can also be executed independently in two steps: the preparation & equilibration with the _openmm-prepare_ subcommand and the production with the _openmm-from-equilibrated_ subcommand. Following the schema presented above, each substep is performed by running the following subcommands.
 
@@ -246,7 +245,7 @@ wqb_threshold : 6
 gpu_id : 0
 ```
 
-#### OpenMM-from-amber
+#### openmm-from-amber
 
 Alternatively, the OpenDUck protocol can be launched from an AMBER topology and coordinates. This can be done using the _openmm-from-amber_ subcommand.
 
@@ -257,35 +256,36 @@ usage: openduck openmm-from-amber [-h] [-y YAML_INPUT] [-c COORDINATES] [-t TOPO
                                   [-r RECEPTOR] [-n SMD_CYCLES] [-m MD_LENGTH] [-W WQB_THRESHOLD]
                                   [-v INIT_VELOCITIES] [-d INIT_DISTANCE] [-g GPU_ID]
 
-OpenDuck openMM protocol starting from an amber topology and coordinates. Using the amber topology (prmtop) and coordinates (inpcrd),
-identifies the main interaction and perform seriate iterations of md and smd cycles are performed until the WQB or max_cycles threshold is reached.
+OpenDUck OpenMM protocol starting from an AMBER topology and coordinates. Using the AMBER topology (prmtop) and
+coordinates (inpcrd), identifies the main interaction and serial iterations of MD and SMD are performed until the
+WQB or max_cycles threshold is reached.
 
 optional arguments:
   -h, --help            show this help message and exit
   -y YAML_INPUT, --yaml-input YAML_INPUT
-                        Input yaml file with the all the arguments for the openMM simulations from the
-                        equilibrated system.
+                        Input yaml file with all the arguments for the OpenMM simulations from the equilibrated
+                        system.
   -c COORDINATES, --coordinates COORDINATES
-                        Amber input coordinates
+                        AMBER input coordinates.
   -t TOPOLOGY, --topology TOPOLOGY
-                        Amber input topology
+                        AMBER input topology.
   -i INTERACTION, --interaction INTERACTION
                         Protein atom to use for ligand interaction.
   -r RECEPTOR, --receptor RECEPTOR
-                        Receptor .mol2 file
+                        Receptor MOL2 file.
   -n SMD_CYCLES, --smd-cycles SMD_CYCLES
-                        Number of MD/SMD cycles to perfrom
+                        Number of MD/SMD cycles to perform.
   -m MD_LENGTH, --md-length MD_LENGTH
-                        Lenght of md sampling between smd runs in ns.
+                        Length of MD sampling between SMD runs in ns.
   -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
-                        Minimum WQB threshold to stop simulations. If not set (Default), all smd-cycles
-                        will be calculated.
+                        Minimum WQB threshold; if not reached after each SMD cycle, further simulations will be
+                        terminated. If not set (default), all SMD cycles will be run.
   -v INIT_VELOCITIES, --init-velocities INIT_VELOCITIES
                         Set initial velocities when heating.
   -d INIT_DISTANCE, --init-distance INIT_DISTANCE
-                        Set initial HB distance for SMD in A. Default = 2.5 A.
+                        Set initial hydrogen bond distance for SMD in Angstroms. Default = 2.5 A.
   -g GPU_ID, --gpu-id GPU_ID
-                        GPU ID, if not specified, runs on CPU only.
+                        GPU ID; if not specified, runs on CPU only.
 ```
 
 If prefered, the script can also be executed from a yaml file with the commands. A sample input.yaml file could be the following:
@@ -307,64 +307,64 @@ Preparation flags are very similar to those for OpenMM, as most of the implement
 ```{bash}
 $ openduck amber-prepare -h
 
-usage: openduck amber-prepare [-h] [-y YAML_INPUT] [-l LIGAND] [-i INTERACTION] [-r RECEPTOR] [--do-chunk] [-c CUTOFF]
-                              [-b] [-f {SMIRNOFF,GAFF2}] [-w {tip3p,spce,tip4pew}] [-q QUEUE_TEMPLATE] [-H]
-                              [-n SMD_CYCLES] [-W WQB_THRESHOLD] [-ff {amber99sb,amber14-all}] [-ion IONIC_STRENGTH]
-                              [-s SOLVENT_BUFFER_DISTANCE] [-water WATERS_TO_RETAIN] [--seed SEED] [-B] [-t THREADS]
-                              [-fl]
+usage: openduck amber-prepare [-h] [-y YAML_INPUT] [-l LIGAND] [-i INTERACTION] [-r RECEPTOR] [--do-chunk]
+                              [-c CUTOFF] [-b] [-f {SMIRNOFF,GAFF2}] [-w {tip3p,spce,tip4pew}]
+                              [-q QUEUE_TEMPLATE] [-H] [-n SMD_CYCLES] [-W WQB_THRESHOLD]
+                              [-ff {amber99sb,amber14-all}] [-ion IONIC_STRENGTH] [-s SOLVENT_BUFFER_DISTANCE]
+                              [-water WATERS_TO_RETAIN] [--seed SEED] [-B] [-t THREADS] [-fl]
 
 Preparation of systems, inputs and queue files for AMBER simulations. The ligand, receptor and solvation box are
-parametrized with the specified parameters. If specified, the receptor is reduced to a chunked pocket for a faster
-production. The input and queue files are prepared from templates found in the duck/templates directory.
+parameterized with the specified parameters. If specified, the receptor is reduced to a chunked pocket for a
+faster production. The input and queue files are prepared from templates found in the duck/templates directory.
 
 optional arguments:
   -h, --help            show this help message and exit
 
 Main arguments:
   -y YAML_INPUT, --yaml-input YAML_INPUT
-                        Input yaml file with the all the arguments for the system preparation and inputs/queueing for
+                        Input yaml file with all the arguments for the system preparation and inputs/queueing for
                         AMBER.
   -l LIGAND, --ligand LIGAND
-                        ligand mol file to use as reference for interaction.
+                        Ligand MOL file to use as reference for interaction.
   -i INTERACTION, --interaction INTERACTION
                         Protein atom to use for ligand interaction.
   -r RECEPTOR, --receptor RECEPTOR
-                        Protein or chunked protein in pdb format used as receptor.
+                        Protein or chunked protein in PDB format used as receptor.
 
 Chunking arguments:
   --do-chunk            Chunk initial receptor based on the interaction with ligand and add cappings.
   -c CUTOFF, --cutoff CUTOFF
-                        Cutoff distance to define chunking. Default = 9 A.
+                        Cutoff distance to define chunking (in Angstroms). Default = 9 A.
   -b, --ignore-buffers  Do not remove buffers (solvent, ions etc.)
 
-Parametrization arguments:
-  -f {SMIRNOFF,GAFF2}, --small_molecule_forcefield {SMIRNOFF,GAFF2}
-                        Small Molecules forcefield.
+Parameterization arguments:
+  -f {SMIRNOFF,GAFF2}, --small-molecule-forcefield {SMIRNOFF,GAFF2}
+                        Small molecule forcefield to use for parameterization.
   -w {tip3p,spce,tip4pew}, --water-model {tip3p,spce,tip4pew}
-                        Water model to parametrize the solvent with.
+                        Water model to parameterize the solvent.
   -q QUEUE_TEMPLATE, --queue-template QUEUE_TEMPLATE
                         Write out a queue file from templates.
-  -H, --HMR             Perform Hydrogen Mass Repartition on the topology and use it for the input files
+  -H, --HMR             Perform Hydrogen Mass Repartition on the topology and use it for the input files.
   -n SMD_CYCLES, --smd-cycles SMD_CYCLES
-                        Ammount of SMD replicas to perform
+                        Number of SMD replicas to perform.
   -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
-                        WQB threshold to stop the simulations
+                        Minimum WQB threshold; if not reached after each SMD cycle, further simulations will be
+                        terminated. If not set (default), all SMD cycles will be run.
   -ff {amber99sb,amber14-all}, --protein-forcefield {amber99sb,amber14-all}
-                        Protein forcefield to parametrize the chunked protein.
+                        Protein forcefield to parameterize the chunked protein.
   -ion IONIC_STRENGTH, --ionic-strength IONIC_STRENGTH
-                        Ionic strength (concentration) of the counter ion salts (Na+/Cl+). Default = 0.1 M
+                        Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default = 0.1 M
   -s SOLVENT_BUFFER_DISTANCE, --solvent-buffer-distance SOLVENT_BUFFER_DISTANCE
-                        Buffer distance between the periodic box and the protein. Default = 10 A
+                        Buffer distance between the periodic box and the protein (in Angstroms). Default = 10 A
   -water WATERS_TO_RETAIN, --waters-to-retain WATERS_TO_RETAIN
-                        PDB File with structural waters to retain water moleules. Default is waters_to_retain.pdb.
-  --seed SEED           Specify seed for amber inputs.
-  -B, --batch           Enable batch processing for multi-ligand sdf.
+                        PDB file containing structural water molecules to retain during simulations. Default is
+                        waters_to_retain.pdb.
+  --seed SEED           Specify seed for AMBER inputs.
+  -B, --batch           Enable batch processing for multi-ligand SDF.
   -t THREADS, --threads THREADS
-                        Define number of cpus for batch processing.
-  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and
-                        add hydrogens to carbon atoms.
-
-
+                        Define number of CPUs for batch processing.
+  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge
+                        assigned and add missing hydrogen atoms.
 ```
 
 ```{bash}
@@ -407,29 +407,32 @@ When analyzing a single result, the default pattern is the current directory (.)
 ```{bash}
 $ openduck report -h
 
-usage: openduck report [-h] [-p PATTERN] [-d {min,single,avg,jarzynski,all}] [-o OUTPUT] [-of {csv,sdf,tbl}] [--plot] [-s SUBSAMPLE_SIZE] [-i ITERATIONS] [-t STEP_THRESHOLD] [-f {amber,openmm}]
+usage: openduck report [-h] [-p PATTERN] [-d {min,single,avg,jarzynski,all}] [-o OUTPUT] [-of {csv,sdf,tbl}]
+                       [--plot] [-s SUBSAMPLE_SIZE] [-i ITERATIONS] [-t STEP_THRESHOLD] [-f {amber,openmm}]
 
-Generate a table report for dynamic undocking output. For a multi-ligand report, use the pattern flag with wildcards to the directories.
+Generate a table report for dynamic undocking output. For a multi-ligand report, use the pattern flag with
+wildcards to the directories.
 
 optional arguments:
   -h, --help            show this help message and exit
   -p PATTERN, --pattern PATTERN
-                        Wildcard pattern to find folders with DUck data
+                        Wildcard pattern to find folders with DUck data.
   -d {min,single,avg,jarzynski,all}, --data {min,single,avg,jarzynski,all}
                         Mode to compile the report [min | single | avg | jarzynski | all]
   -o OUTPUT, --output OUTPUT
-                        Output file, default is printing report to stdout.
+                        Output file; default is printing report to stdout.
   -of {csv,sdf,tbl}, --output-format {csv,sdf,tbl}
                         Output format, [csv | sdf | tbl].
   --plot                Plot work or energy values to file.
   -s SUBSAMPLE_SIZE, --subsample-size SUBSAMPLE_SIZE
-                        Subsample size for jarzynski bootstrapping.
+                        Subsample size for Jarzynski bootstrapping.
   -i ITERATIONS, --iterations ITERATIONS
-                        Number of bootstrapping iterations for jarzynski analysis.
+                        Number of bootstrapping iterations for Jarzynski analysis.
   -t STEP_THRESHOLD, --step-threshold STEP_THRESHOLD
-                        Steps_treshold to find the minima.
+                        Step threshold to find the minima. Only needed with custom executions of DUck. Default =
+                        2500 steps
   -f {amber,openmm}, --format {amber,openmm}
-                        Data where the results come from. Amber by default.
+                        Engine used to generate results. Default = amber
 ```
 
 #### Report example
