@@ -161,7 +161,7 @@ Similarly, an execution with the input parameters in a yaml is also possible (th
 ```{bash}
 openduck openmm-full-protocol -y input.yaml
 ```
-where the _input.yaml_ file has the following
+where the `input.yaml` file has the following
 ```{yaml}
 # Main Arguments
 interaction : A_ASN_140_ND2
@@ -194,7 +194,7 @@ fix_ligand : False
 
 #### openmm-prepare & openmm-from-equilibrated
 
-The OpenDUck protocol can also be executed independently in two steps: the preparation & equilibration with the _openmm-prepare_ subcommand and the production with the _openmm-from-equilibrated_ subcommand. Following the schema presented above, each substep is performed by running the following subcommands.
+The OpenDUck protocol can also be executed independently in two steps: the preparation & equilibration with the `openmm-prepare` subcommand and the production with the `openmm-from-equilibrated` subcommand. Following the schema presented above, each substep is performed by running the following subcommands.
 
     openmm-prepare
       * Chunking (optional)
@@ -247,7 +247,7 @@ gpu_id : 0
 
 #### openmm-from-amber
 
-Alternatively, the OpenDUck protocol can be launched from an AMBER topology and coordinates. This can be done using the _openmm-from-amber_ subcommand.
+Alternatively, the OpenDUck protocol can be launched from an AMBER topology and coordinates. This can be done using the `openmm-from-amber` subcommand.
 
 ``` {bash}
 $ openduck openmm-from-amber -h
@@ -374,7 +374,7 @@ $ openduck amber-prepare -l ../1a28_lig.mol -r ../1a28_prot.pdb -i A_ARG_766_NH2
                          --HMR -n 4 -W 4 -q Slurm
 ```
 
-Typically, dynamic undocking is employed as a post-docking filter in a virtual screening campaign. As such, multiple ligands might be generated simultaneously. A batch execution of the DUck preparation can be executed specifying the _--batch_ argument and providing an SD-file with multiple ligands as input. Each ligand and the associated file structure will be generated in the `LIG_target_{n}` subfolder, where `n` is the ligand's position in the input SDF.
+Typically, dynamic undocking is employed as a post-docking filter in a virtual screening campaign. As such, multiple ligands might be generated simultaneously. A batch execution of the DUck preparation can be executed specifying the `--batch` argument and providing an SD-file with multiple ligands as input. Each ligand and the associated file structure will be generated in the `LIG_target_{n}` subfolder, where `n` is the ligand's position in the input SDF.
 
 ```{bash}
 $ openduck amber-prepare -l ../brd4_ligands.sdf -r ../4LR6_aligned_chunk_nowat.pdb -i A_ASN_140_ND2 \
@@ -382,7 +382,7 @@ $ openduck amber-prepare -l ../brd4_ligands.sdf -r ../4LR6_aligned_chunk_nowat.p
                          --HMR --smd-cycles 10 -wqb-threshold 8 -q SGE --seed -1 --batch --threads 8
 ```
 
-The queueing template is stored in duck/templates/queueing_templates. To customize a template, a new file can be added in the directory with the following format: {queue_name}_array.q or {queue_name}.q either if the expected execution is in an array or not. For a local execution, the _local_ argument can be given for a plain list of commands.
+The queueing template is stored in `duck/templates/queueing_templates`. To customize a template, a new file can be added in the directory with the following format: `{queue_name}_array.q` or `{queue_name}.q` either if the expected execution is in an array or not. For a local execution, the `local` argument can be given for a plain list of commands.
 
 The templates have the following format:
 ```
@@ -396,13 +396,13 @@ The templates have the following format:
 
 ### Analysis
 
-After successfully running OpenDUck using either OpenMM or Amber, the results can be compiled using the report submodule.
+After successfully running OpenDUck using either OpenMM or AMBER, the results can be compiled using the report submodule.
 By default, the lowest $W_{QB}$ is used as a reporter for the robustness of the studied interaction, however, a better (and more formally appropiate) descriptor has been shown to be the $\Delta_{QB}$ obtained using the Jarzynski equality. When specified, a bootstrapping is performed to assess the convergence of the reported value.
 
 **Important**
 
-Due the different formating of Amber and OpenMM steered molecular dynamics output, the _--format_ argument is needed when analyzing either output.
-When analyzing a single result, the default pattern is the current directory (.). If you wish to analyze multiple directories, specify the wildcard pattern.
+Due to the different formating of AMBER and OpenMM steered molecular dynamics output, the `--format` argument is needed when analyzing either output.
+When analyzing a single result, the default pattern is the current directory (`.`). If you wish to analyze multiple directories, specify the wildcard pattern.
 
 ```{bash}
 $ openduck report -h
