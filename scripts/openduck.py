@@ -688,7 +688,7 @@ def do_OpenMM_preparation(args):
     '''
     from duck.utils.check_system import check_if_equlibrated
     from duck.steps.equlibrate import do_equlibrate
-    from duck.steps.parameterize import prepare_system
+    from duck.steps.parametrize import prepare_system
     from duck.utils.cal_ints import find_interaction
     # create chunk
     if args.do_chunk:
