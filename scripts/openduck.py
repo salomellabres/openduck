@@ -172,8 +172,8 @@ def args_sanitation(parser, modes):
         if (args.iterations != 20 or args.subsample_size != 20) and args.data not in ('all', 'jarzynski'):
             modes.choices['report'].error('Iterations and subsample size affect bootstrapping which is only performed when doing Jarzynski analysis.')
         if  args.format == 'openmm' and args.data in ('all', 'jarzynski') and args.step_threshold > 1250:
-            print('OpenMM duck output has 1250 report steps. The index_threshold to find the minima needs to be >1250. It will be changed to 600.')
-            args.index_threshold == 600
+            print('OpenMM duck output has 1250 report steps. The step_threshold to find the minima needs to be >1250. It will be changed to 600.')
+            args.step_threshold == 600
     elif args.mode == 'Chunk':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
             modes.choices['chunk'].error('The input needs to be either the input yaml or specified on the command line (ligand, receptor interaction).')
