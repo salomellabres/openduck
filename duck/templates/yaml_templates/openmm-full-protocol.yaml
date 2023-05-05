@@ -1,0 +1,28 @@
+# Example openmm-full-protocol.yaml. To pick the parameters you can consult openduck openmm-full-protocol -h 
+# Main Arguments
+interaction : Chain_Resname_Resid_AtomName (i.e. A_ASN_140_ND2)
+receptor_pdb : receptor.pdb
+ligand_mol : ligand.mol (can be ligand.sdf)
+gpu_id : 0
+
+# Chunking Arguments (create a chunk from the receptor.pdb around the main interaction)
+do_chunk : True
+cutoff : 10
+ignore_buffers : False
+
+# Preparation Arguments
+small_molecule_forcefield : smirnoff
+protein_forcefield : amber14-all
+water_model : tip3p
+ionic_strength : 0.05
+waters_to_retain : waters_to_retain.pdb
+solvent_buffer_distance : 15
+fix_ligand : False
+
+# Equilibration and Production Arguments
+force_constant_eq : 1
+smd_cycles : 20
+md_length : 0.5
+wqb_threshold : 6
+init_velocities : 0.00001
+init_distance : 2.5

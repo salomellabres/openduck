@@ -1,0 +1,7 @@
+#Example input yaml for openmm-from-equilibrated. For an extended explanation of the arguments consult openduck openmm-from-equilibrated -h
+equilibrated_system : equil.chk
+pickle : complex_system.pickle
+smd_cycles : 20
+md_length : 0.5
+wqb_threshold : 6
+gpu_id : 0
