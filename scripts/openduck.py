@@ -490,7 +490,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     p[0].save('system_complex.inpcrd', overwrite=True)
 
     AMBER = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed)
-    amber.write_all_inputs()
+    AMBER.write_all_inputs()
 
 def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False):
     '''
