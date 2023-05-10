@@ -79,7 +79,10 @@ def flatten_wqb_dict(info_dict):
     v.extend([[] for i in range(len(values[0][1]))])
     for i in range(len(values)):
         for j in range(len(values[0][1])):
-            v[j+1].append(values[i][1][j][1])
+            if len(k)-1 == len(values[i][1]):
+                v[j+1].append(values[i][1][j][1])
+            else:
+                v[j+1].append('Nan')
     return {ks: vs for ks, vs in zip(k, v)}
 
 def build_report_df(info_dict, mode='min'):
@@ -101,7 +104,6 @@ def build_report_df(info_dict, mode='min'):
     elif mode == 'all':
         flat_dict = flatten_wqb_dict(info_dict)
         single_df = pd.DataFrame(flat_dict)
-        print(info_dict)
         wqb_df = pd.DataFrame({'System': list(info_dict.keys()), 'WQB':[wqb[0] for wqb in info_dict.values()],
                             'Average': [np.mean([x[1] for x in wqb[1]]) for wqb in info_dict.values()],
                             'SD': [np.std([x[1] for x in wqb[1]]) for wqb in info_dict.values()]})
