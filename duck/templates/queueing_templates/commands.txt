@@ -4,9 +4,14 @@ replicas={replicas}
 min_wqb={wqb_threshold}
     
 #### Runing Duck ####
-# Minimization&Equilibration
+# Minimization
 pmemd.cuda -O -i 1_min.in -o min.out -p {top} -c system_complex.inpcrd -r min.rst -ref system_complex.inpcrd
-pmemd.cuda -O -i 2_heating150.in -o 2_heating150.out -p {top} -c min.rst -r  2_heating150.rst -x 2_heating150.nc -ref system_complex.inpcrd
+
+# Centering box to allow iwrap, not being centered to 0,0,0 bricks the system when using iwrap and nmr restraints together
+echo -e "trajin min.rst\ncenter\ntrajout min.rst\nrun\nquit" | cpptraj -p {top}
+
+# Heating & Equilibration
+pmemd.cuda -O -i 2_heating150.in -o 2_heating150.out -p {top} -c min.rst -r  2_heating150.rst -x 2_heating150.nc -ref min.rst
 pmemd.cuda -O -i 2_heating200.in -o 2_heating200.out -p {top} -c 2_heating150.rst -r 2_heating200.rst -x 2_heating200.nc -ref 2_heating150.rst
 pmemd.cuda -O -i 2_heating250.in -o 2_heating250.out -p {top} -c 2_heating200.rst -r 2_heating250.rst -x 2_heating250.nc -ref 2_heating200.rst
 pmemd.cuda -O -i 2_heating300.in -o 2_heating300.out -p {top} -c 2_heating250.rst -r 2_heating300.rst -x 2_heating300.nc -ref 2_heating250.rst
