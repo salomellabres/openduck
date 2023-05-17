@@ -157,6 +157,8 @@ def args_sanitation(parser, modes):
                 if 'smd_cycles' in input_arguments: args.smd_cycles = int(input_arguments['smd_cycles'])
                 if 'batch' in input_arguments: args.batch = int(input_arguments['batch'])
                 if 'threads' in input_arguments: args.threads = int(input_arguments['threads'])
+                if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
+                if 'fix_ligand' in input_arguments : args.fix_ligand = bool(input_arguments['fix_ligand'])
                 if args.queue_template == 'local' and args.batch: args.queue_template = None # no local array script
                 if (not args.ligand.endswith('.sdf') and not args.ligand.endswith('.sd')) and args.batch:
                     modes.choices['amber-prepare'].error('Batch processing requires the ligand to be in SD or SDF format.')
@@ -316,7 +318,7 @@ def parse_input():
     amber_prep.add_argument('-B', '--batch', default=False, action='store_true', help='Enable batch processing for multi-ligand SDF.')
     amber_prep.add_argument('-t', '--threads', default=1, type=int, help='Define number of CPUs for batch processing.')
     amber_prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add missing hydrogen atoms.')
-
+    amber_prep.add_argument('--keep-all-files', default=False, action='store_true', help='Disable cleaning up intermediate files during preparation and simulations.')
     #Arguments for report
     report = modes.add_parser('report', help='Generate a report for OpenDUck results.', description='Generate a table report for dynamic undocking output. For a multi-ligand report, use the pattern flag with wildcards to the directories.')
     report.set_defaults(mode='Report')
@@ -634,7 +636,7 @@ def do_AMBER_preparation(args):
         pool.close()
         pool.join()
 
-        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, array_limit=len(r), hmr=args.HMR)
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, array_limit=len(r), hmr=args.HMR, keep_intermediate_files=args.keep_all_files)
     else:
         if args.threads != 1:
             print('WARNING: The number of threads does not have an impact if the batch mode is not enabled.')
@@ -726,16 +728,13 @@ def main():
     elif args.mode == 'from-equilibration':
         do_openMM_from_equil(args)
     elif args.mode == 'from-amber':
-        #WIP
         do_openMM_from_amber(args)
-        print('Still in progress')
     elif args.mode == 'Amber-preparation':
         do_AMBER_preparation(args)
     elif args.mode == 'Report':
         do_report(args)
     elif args.mode == 'Chunk':
         from duck.steps.chunk import duck_chunk
-        print(args)
         duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff,output_name=args.output, ignore_buffers=args.ignore_buffers)
     else:
         parser.print_help()

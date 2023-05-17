@@ -48,7 +48,7 @@ Methods:
     copy_getWqbValues_script(): Copies the getWqbValues.py script from the queue templates directory to the current working directory.
     write_queue_file(kind): Generates a queue file with the given kind (template) and writes it to disk.
     """
-    def __init__(self, wqb_threshold, replicas, hmr, array_limit=False):
+    def __init__(self, wqb_threshold, replicas, hmr, array_limit=False, keep_intermediate_files=False):
         '''
         Initialize the Queue_templates class.
 
@@ -68,6 +68,8 @@ Methods:
         
         self.queue_dir = self._get_queue_templates_dir()
         self.commands_string = self._get_commands_string()
+        if not keep_intermediate_files:
+            self.commands_string += '\nfind -type f ! -regex ".*\(dat\|prmtop\|inpcrd\|in\|dist.*rst\)$" -delete\n'
         self.functions_string = self._get_functions_string()
     
     def _get_queue_templates_dir(self):
