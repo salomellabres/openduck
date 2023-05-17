@@ -172,8 +172,8 @@ def args_sanitation(parser, modes):
         if (args.iterations != 20 or args.subsample_size != 20) and args.data not in ('all', 'jarzynski'):
             modes.choices['report'].error('Iterations and subsample size affect bootstrapping which is only performed when doing Jarzynski analysis.')
         if  args.format == 'openmm' and args.data in ('all', 'jarzynski') and args.step_threshold > 1250:
-            print('OpenMM duck output has 1250 report steps. The index_threshold to find the minima needs to be >1250. It will be changed to 600.')
-            args.index_threshold == 600
+            print('OpenMM duck output has 1250 report steps. The step_threshold to find the minima needs to be >1250. It will be changed to 600.')
+            args.step_threshold == 600
     elif args.mode == 'Chunk':
         if (args.yaml_input is None) and (args.ligand is None or args.interaction is None or args.receptor is None):
             modes.choices['chunk'].error('The input needs to be either the input yaml or specified on the command line (ligand, receptor interaction).')
@@ -472,7 +472,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
         seed (str, optional): Seed value for random number generation during parameterization. Default is '-1'.
         fix_ligand_file (bool, optional): Whether or not to fix the ligand file during parameterization. Default is False.
     '''
-    from duck.steps.parameterize import prepare_system
+    from duck.steps.parametrize import prepare_system
     from duck.utils.cal_ints import find_interaction
     from duck.utils.amber_inputs import Amber_templates
     # Parameterize the ligand
@@ -490,7 +490,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     p[0].save('system_complex.inpcrd', overwrite=True)
 
     AMBER = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed)
-    amber.write_all_inputs()
+    AMBER.write_all_inputs()
 
 def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False):
     '''

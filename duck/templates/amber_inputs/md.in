@@ -1,7 +1,7 @@
 # 0.5ns PRODUCTION for ligand conformational sampling
 &cntrl
 ntx=5, irest=1,
-iwrap=0,
+iwrap=1,
 ntxo=1, ntpr=2000, ntwx=0, ntwv=0, ntwe=0, ntwr=0, ioutfm=1,
 ntc=2, ntf=2,
 ntb=1, cut=9.0,
