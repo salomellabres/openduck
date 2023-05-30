@@ -517,6 +517,10 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
     os.mkdir(f'LIG_target_{lig_indx}')
     os.chdir(f'LIG_target_{lig_indx}')
     print(f'Working on LIG_target_{lig_indx}')
+
+    #set OMP_NUM_THREADS for sqm paralelization
+    os.environ['OMP_NUM_THREADS'] = '1'
+
     with open('preparation.out', 'w') as o:
         with redirect_stdout(o):
             # Copying files to ligand foldef; ligand and prot
@@ -635,9 +639,6 @@ def do_AMBER_preparation(args):
         from duck.utils.amber_inputs import log_result, handle_error, ligand_string_generator
         pool = mp.Pool(args.threads)
         base_dir = os.getcwd()
-
-        #set OMP_NUM_THREADS for sqm paralelization
-        os.environ['OMP_NUM_THREADS'] = 1
 
         r = [pool.apply_async(AMBER_prepare_ligand_in_folder,
                           args=(ligand_string, j+1, args.receptor, chunk_file,
