@@ -2,7 +2,7 @@
 #$ -N DUck_queue          # The name of the job, can be whatever makes sense to you
 #$ -S /bin/bash          # Force sh if not Sun Grid Engine default shell
 #$ -cwd                 # The batchsystem should use the current directory as working directory.
-#$ -q fartorgpu.q            # Queue name where the job should be placed into.
+#$ -q iqtc10_g1819_gpu.q            # Queue name where the job should be placed into.
 #$ -o DUck.q.o             # Redirect output stream to this file.
 #$ -e DUck.q.e             # Redirect error stream to this file.
 #$ -l h_rt=15:00:00 # Time limit
@@ -15,7 +15,10 @@
 
 #Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB)
 . /etc/profile
-module load amber/20_cuda9.0_ompi
+module load amber anaconda
+
+source activate
+
 
 #Necessary to use a free GPU
 export CUDA_VISIBLE_DEVICES=`cat $TMPDIR/.gpus`
@@ -24,6 +27,7 @@ export CUDA_VISIBLE_DEVICES=`cat $TMPDIR/.gpus`
 #Things will need to run in $TMPDIR
 LIG_TARGET=$PWD
 cp -r $LIG_TARGET/* $TMPDIR
+cp  getWqbValues.py $TMPDIR/
 cd $TMPDIR
 
 #Remove local output files, as it removes the queue ones when copying back

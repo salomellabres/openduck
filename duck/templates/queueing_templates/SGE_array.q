@@ -16,7 +16,9 @@
 
 #Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB)
 . /etc/profile
-module load amber/20_cuda9.0_ompi
+module load amber anaconda
+
+source activate
 
 #Necessary to use a free GPU
 export CUDA_VISIBLE_DEVICES=`cat $TMPDIR/.gpus`
@@ -25,6 +27,7 @@ export CUDA_VISIBLE_DEVICES=`cat $TMPDIR/.gpus`
 #Things will need to run in $TMPDIR
 LIG_TARGET=$PWD/LIG_target_$SGE_TASK_ID
 cp -r $LIG_TARGET/* $TMPDIR
+cp  getWqbValues.py $TMPDIR/
 cd $TMPDIR
 
 #Remove local output files, as it removes the queue ones when copying back
