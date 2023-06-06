@@ -17,8 +17,8 @@ ionic_strength : 0.05
 solvent_buffer_distance : 11
 HMR : True
 smd_cycles : 5
-wqb_threshold : 2
-queue_template : local
+wqb_threshold : 0
+queue_template : Slurm
 seed : 12345
 batch : True
 threads : 2

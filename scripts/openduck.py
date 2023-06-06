@@ -39,6 +39,7 @@ def args_sanitation(parser, modes):
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
+                if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
             else:
                 modes.choices['openmm-full-protocol'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -63,7 +64,7 @@ def args_sanitation(parser, modes):
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
-
+                if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
             else:
                 modes.choices['openmm-from-equilibrated'].error('You need to specify at least "pickle" and "equilibrated_system" in the yaml file.')
         elif (args.pickle is None or args.equilibrated_system is None):
@@ -95,6 +96,7 @@ def args_sanitation(parser, modes):
                 if 'do_equilibrate' in input_arguments: args.do_equilibrate =  str(input_arguments['do_equilibrate'])
                 if 'gpu_id' in input_arguments: args.gpu_id =  str(input_arguments['gpu_id'])
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
+                if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
             else:
                 modes.choices['openmm-prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -121,7 +123,7 @@ def args_sanitation(parser, modes):
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
                 if 'gpu_id' in input_arguments: args.gpu_id =  int(input_arguments['gpu_id'])
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
-
+                if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
             else:
                 modes.choices['openmm-from-amber'].error('You need to specify at least the AMBER topology and coordinates, a receptor and the interaction and a receptor file.')
         elif (args.interaction is None or args.topology is None or args.coordinates is None):
@@ -157,6 +159,8 @@ def args_sanitation(parser, modes):
                 if 'smd_cycles' in input_arguments: args.smd_cycles = int(input_arguments['smd_cycles'])
                 if 'batch' in input_arguments: args.batch = int(input_arguments['batch'])
                 if 'threads' in input_arguments: args.threads = int(input_arguments['threads'])
+                if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
+                if 'fix_ligand' in input_arguments : args.fix_ligand = bool(input_arguments['fix_ligand'])
                 if args.queue_template == 'local' and args.batch: args.queue_template = None # no local array script
                 if (not args.ligand.endswith('.sdf') and not args.ligand.endswith('.sd')) and args.batch:
                     modes.choices['amber-prepare'].error('Batch processing requires the ligand to be in SD or SDF format.')
@@ -184,13 +188,10 @@ def args_sanitation(parser, modes):
                 args.ligand = str(input_arguments['ligand_mol'])
                 args.receptor = str(input_arguments['receptor_pdb'])
                 args.interaction = str(input_arguments['interaction'])
-
                 # overwrite the defaults from command line args
                 if 'cutoff' in input_arguments: args.cutoff =  float(input_arguments['cutoff'])
                 if 'ignore_buffers' in input_arguments: args.ignore_buffers =  bool(input_arguments['ignore_buffers'])
                 if 'output' in input_arguments: args.output =  str(input_arguments['output'])
-
-
             else:
                 modes.choices['chunk'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -216,6 +217,7 @@ def parse_input():
     openmm_prep_main.add_argument('-l', '--ligand', type=str, default = None, help='Ligand MOL file to use as reference for interaction.')
     openmm_prep_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
     openmm_prep_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in PDB format used as receptor.')
+    openmm_prep_main.add_argument('--keep-all-files', default=False, action='store_true', help='Disable cleaning up intermediate files during simulations.')
     openmm_chunk = openmm_prep.add_argument_group('Chunking arguments')
     openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
     openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunking (in Angstroms). Default = 9 A.')
@@ -242,6 +244,7 @@ def parse_input():
     full_main.add_argument('-i', '--interaction', type=str, default = None, help='Protein atom to use for ligand interaction.')
     full_main.add_argument('-r', '--receptor', type=str, default = None, help='Protein or chunked protein in PDB format used as receptor.')
     full_main.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID; if not specified, runs on CPU only.')
+    full_main.add_argument('--keep-all-files', default=False, action='store_true', help='Disable cleaning up intermediate files during simulations.')
     openmm_chunk = full.add_argument_group('Chunking arguments')
     openmm_chunk.add_argument('--do-chunk', action='store_true', help='Chunk initial receptor based on the interaction with ligand and add cappings.')
     openmm_chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunking (in Angstroms). Default = 9 A.')
@@ -273,6 +276,7 @@ def parse_input():
     equil.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating.')
     equil.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial hydrogen bond distance for SMD in Angstroms. Default = 2.5 A.')
     equil.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID; if not specified, runs on CPU only.')
+    equil.add_argument('--keep-all-files', default=False, action='store_true', help='Disable cleaning up intermediate files during simulations.')
     equil.set_defaults(mode='from-equilibration')
 
     openmm_prmtop = modes.add_parser('openmm-from-amber', help='OpenDUck OpenMM protocol starting from an AMBER topology and coordinates.', description='OpenDUck OpenMM protocol starting from an AMBER topology and coordinates. Using the AMBER topology (prmtop) and coordinates (inpcrd), identifies the main interaction and serial iterations of MD and SMD are performed until the WQB or max_cycles threshold is reached.')
@@ -288,6 +292,7 @@ def parse_input():
     openmm_prmtop.add_argument('-v', '--init-velocities', type=float, default=0.00001, help='Set initial velocities when heating.')
     openmm_prmtop.add_argument('-d', '--init-distance', type=float, default=2.5, help='Set initial hydrogen bond distance for SMD in Angstroms. Default = 2.5 A.')
     openmm_prmtop.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID; if not specified, runs on CPU only.')
+    openmm_prmtop.add_argument('--keep-all-files', default=False, action='store_true', help='Disable cleaning up intermediate files during simulations.')
 
     #Arguments for OPENMM_PREPARATION
     amber = modes.add_parser('amber-prepare', help='Preparation of systems, inputs and queue files for AMBER simulations.', description='Preparation of systems, inputs and queue files for AMBER simulations. The ligand, receptor and solvation box are parameterized with the specified parameters. If specified, the receptor is reduced to a chunked pocket for a faster production. The input and queue files are prepared from templates found in the duck/templates directory.')
@@ -316,7 +321,7 @@ def parse_input():
     amber_prep.add_argument('-B', '--batch', default=False, action='store_true', help='Enable batch processing for multi-ligand SDF.')
     amber_prep.add_argument('-t', '--threads', default=1, type=int, help='Define number of CPUs for batch processing.')
     amber_prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add missing hydrogen atoms.')
-
+    amber_prep.add_argument('--keep-all-files', default=False, action='store_true', help='Disable cleaning up intermediate files during preparation and simulations.')
     #Arguments for report
     report = modes.add_parser('report', help='Generate a report for OpenDUck results.', description='Generate a table report for dynamic undocking output. For a multi-ligand report, use the pattern flag with wildcards to the directories.')
     report.set_defaults(mode='Report')
@@ -345,7 +350,7 @@ def parse_input():
 
     return args, parser
 
-def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist, init_velocity, save_dir, wqb_threshold=None):
+def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist, init_velocity, save_dir, wqb_threshold=None, clean=False):
     """
     Run molecular dynamics and steered molecular dynamics simulations on a system specified by an input checkpoint and a pickle file.
 
@@ -369,16 +374,16 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
     from duck.utils.analysis_and_report import get_Wqb_value
     import filecmp
 
-    if not os.path.isfile(input_checkpoint):
+    if not os.path.exists(input_checkpoint):
         raise OSError(f'{input_checkpoint} can not be found. Something might have gone wrong during equilibration.')
-    if not os.path.isfile(pickle):
+    if not os.path.exists(pickle):
         raise OSError(f'{pickle} can not be found. Something might have gone wrong during equilibration.')
 
     # Why is this shutil here? are the md/smd functions hardcoded to read this specific files?
     # check if files are the same, as shutil complains if it is the case.
-    if not os.path.isfile('equil.chk'):
+    if not os.path.exists('equil.chk'):
         shutil.copyfile(input_checkpoint, "equil.chk")
-    if not os.path.isfile('copmlex_system.pickle'):
+    if not os.path.exists('complex_system.pickle'):
         shutil.copyfile(pickle, "complex_system.pickle")
 
     '''if not filecmp.cmp(input_checkpoint, 'equil.chk'):
@@ -445,13 +450,17 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
         )
         #check if wqb is higher or lower than threshold to continue
         wqb, data, min_abs_work = get_Wqb_value(str(Path(save_dir, "smd_" + str(i) + "_325.dat")), mode='openmm')
+        if clean:
+            from duck.utils.cal_ints import clean_up_files
+            files_to_delete = ['']
+            clean_up_files(files_to_delete=files_to_delete)
         if wqb_threshold is not None and wqb < wqb_threshold:
             print(f'DUck replica {i}_325 yielded a wqb of {wqb}, which is lower that the wqb_threshold ({wqb_threshold}).\nStopping OpenDUck simulations.')
             return wqb
         else:
             print(f'Wqb: {wqb}')
 
-def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1', fix_ligand_file=False):
+def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1', fix_ligand_file=False, clean_up=False):
     '''
     Prepares the system for AMBER simulation by parameterizing the ligand and finding the specified interaction
     between the ligand and protein. The resulting complex is saved to a pickle file, 'complex_system.pickle', and
@@ -478,7 +487,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     # Parameterize the ligand
     prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str,
                    hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str,
-                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength, waters_to_retain=waters_to_retain, fix_ligand_file=fix_ligand_file)
+                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength, waters_to_retain=waters_to_retain, fix_ligand_file=fix_ligand_file, clean_up=clean_up)
 
     # Now find the interaction and save to a file
     results = find_interaction(interaction, protein_file)
@@ -492,7 +501,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     AMBER = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed)
     AMBER.write_all_inputs()
 
-def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False):
+def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False, clean_up=False):
     '''
     Generate the folder for a ligand preparation and prepare such ligand.
     '''
@@ -508,6 +517,10 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
     os.mkdir(f'LIG_target_{lig_indx}')
     os.chdir(f'LIG_target_{lig_indx}')
     print(f'Working on LIG_target_{lig_indx}')
+
+    #set OMP_NUM_THREADS for sqm paralelization
+    os.environ['OMP_NUM_THREADS'] = '1'
+
     with open('preparation.out', 'w') as o:
         with redirect_stdout(o):
             # Copying files to ligand foldef; ligand and prot
@@ -519,7 +532,7 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
                                   forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
-                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand)
+                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up)
 
     return(f'Lig_target_{lig_indx} prepared correctly')
 
@@ -551,7 +564,8 @@ def do_full_openMM_protocol(args):
                 start_dist=args.init_distance,
                 init_velocity=args.init_velocities,
                 save_dir=save_dir,
-                wqb_threshold=args.wqb_threshold)
+                wqb_threshold=args.wqb_threshold,
+                clean=not args.keep_all_files)
 
 def do_openMM_from_equil(args):
     '''
@@ -568,7 +582,8 @@ def do_openMM_from_equil(args):
             start_dist=args.init_distance,
             init_velocity=args.init_velocities,
             save_dir=save_dir,
-            wqb_threshold=args.wqb_threshold)
+            wqb_threshold=args.wqb_threshold,
+            clean = not args.keep_all_files)
 
 def do_openMM_from_amber(args):
     '''
@@ -602,7 +617,8 @@ def do_openMM_from_amber(args):
                   start_dist=args.init_distance,
                   init_velocity=args.init_velocities,
                   save_dir=save_dir,
-                  wqb_threshold=args.wqb_threshold)
+                  wqb_threshold=args.wqb_threshold,
+                  clean=not args.keep_all_files)
 
 def do_AMBER_preparation(args):
     '''
@@ -628,20 +644,20 @@ def do_AMBER_preparation(args):
                           args=(ligand_string, j+1, args.receptor, chunk_file,
                                 args.interaction, args.HMR, base_dir,
                                 args.small_molecule_forcefield, args.water_model, args.protein_forcefield,
-                                args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain, args.seed),
+                                args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain, args.seed, args.fix_ligand, not args.keep_all_files),
                           callback=log_result,
                           error_callback=handle_error) for j, ligand_string in enumerate(ligand_string_generator(args.ligand))]
         pool.close()
         pool.join()
 
-        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, array_limit=len(r), hmr=args.HMR)
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, array_limit=len(r), hmr=args.HMR, keep_intermediate_files=args.keep_all_files)
     else:
         if args.threads != 1:
             print('WARNING: The number of threads does not have an impact if the batch mode is not enabled.')
         prepare_sys_for_amber(args.ligand, args.receptor, chunk_file, args.interaction, args.HMR,
         small_molecule_forcefield=args.small_molecule_forcefield, water_ff_str = args.water_model,
         forcefield_str=f'{args.protein_forcefield}.xml', ionic_strength = args.ionic_strength,
-        box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed, fix_ligand_file=args.fix_ligand)
+        box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed, fix_ligand_file=args.fix_ligand, clean_up=not args.keep_all_files)
         queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, hmr=args.HMR)
     queue.write_queue_file(kind=args.queue_template)
 
@@ -699,7 +715,7 @@ def do_OpenMM_preparation(args):
     # prepare system
     prepare_system(args.ligand, chunked_file, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
             small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
-            box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength, fix_ligand_file=args.fix_ligand)
+            box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength, fix_ligand_file=args.fix_ligand, clean_up=not args.keep_all_files)
     results = find_interaction(args.interaction, args.receptor)
     with open('complex_system.pickle', 'rb') as f:
         p = pickle.load(f) + results
@@ -710,7 +726,7 @@ def do_OpenMM_preparation(args):
     # Equlibration
     print(results)
     if args.do_equilibrate:
-        do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=results)
+        do_equlibrate(force_constant_equilibrate=args.force_constant_eq, gpu_id=args.gpu_id, keyInteraction=results, clean=not args.keep_all_files)
         if not check_if_equlibrated("density.csv", 1):
             raise EquilibrationError("System is not equilibrated.") # Does this exist?
 
@@ -726,16 +742,13 @@ def main():
     elif args.mode == 'from-equilibration':
         do_openMM_from_equil(args)
     elif args.mode == 'from-amber':
-        #WIP
         do_openMM_from_amber(args)
-        print('Still in progress')
     elif args.mode == 'Amber-preparation':
         do_AMBER_preparation(args)
     elif args.mode == 'Report':
         do_report(args)
     elif args.mode == 'Chunk':
         from duck.steps.chunk import duck_chunk
-        print(args)
         duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff,output_name=args.output, ignore_buffers=args.ignore_buffers)
     else:
         parser.print_help()
