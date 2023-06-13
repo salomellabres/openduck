@@ -11,9 +11,11 @@
 #SBATCH --array=1-{array_limit}   
 
 #### Modules ####
-module load amber/20
+module load amber
 
 {functions}
+
+cd LIG_target_$SLURM_ARRAY_TASK_ID
 
 {commands}
 
