@@ -6,6 +6,7 @@ from parmed.openmm import NetCDFReporter
 import pickle
 from duck.utils import duck_stuff
 from duck.utils import cal_ints
+from duck.utils.exceptions import EquilibrationError
 
 def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None, clean=False):
     """

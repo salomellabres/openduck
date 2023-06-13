@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 import os
 import yaml
+from duck.utils.exceptions import *
 
 def args_sanitation(parser, modes):
     '''Sanitize the parser to allow yaml or command line inputs with a proper formating for the rest of the script to work
