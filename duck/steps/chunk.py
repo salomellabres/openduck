@@ -271,9 +271,11 @@ def chunk_with_amber(
     protein = parmed.load_file(prot_file)
     # get these details
     atom_idx, prot_atom = find_atom(interaction, orig_prot, protein)
+    # use parmed to mask whole resudies (<:) within a cutoff distance of atom (@ atom_idx)
     mask = parmed.amber.AmberMask(
         protein, "@" + str(atom_idx[0][0] + 1) + "<:" + str(cutoff)
     )
+    #select only the residues and only once each
     residues = set(
         [protein.atoms[i].residue for i, x in enumerate(mask.Selection()) if x == 1]
     )
@@ -352,11 +354,13 @@ def duck_chunk(prot_file, mol_file, interaction, cutoff, output_name = 'protein_
     return chunk_protein_prot
 
 if __name__ == "__main__":
-    mol_file = "MURD-x0349.mol"
-    prot_file = "MURD-x0349_apo.pdb"
-    interaction = "A_LYS_311_N"
-    out_save = "protein_chunked.pdb"
-    cutoff = 9.0
-    orig_prot = "MURD-x0349_apo.pdb"
-    chunk_with_amber()
-    do_tleap(out_save, "protein_chunked_tlepead.pdb")
+    import argparse
+    parser = argparse.ArgumentParser(description='Duck chunk')
+    parser.add_argument('-r', '--receptor', type=str)
+    parser.add_argument('-l', '--ligand', type=str)
+    parser.add_argument('-i', '--interaction', type=str)
+    parser.add_argument('-c', '--cutoff', type=float)
+    parser.add_argument('-o', '--output', type=str, default='protein_out.pdb')
+    parser.add_argument('-b', '--ignore-buffers', action='store_true')
+    args = parser.parse_args()
+    duck_chunk(args.receptor, args.ligand, args.interaction, args.cutoff, args.output, args.ignore_buffers)
