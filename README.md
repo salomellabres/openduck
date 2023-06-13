@@ -110,45 +110,49 @@ Main arguments:
                         Protein or chunked protein in PDB format used as receptor.
   -g GPU_ID, --gpu-id GPU_ID
                         GPU ID; if not specified, runs on CPU only.
+  --keep-all-files      Disable cleaning up intermediate files during simulations.
 
 Chunking arguments:
-  --do-chunk            Chunk initial receptor based on the interaction with ligand and add cappings.
+  --do-chunk            Chunk initial receptor based on the interaction with ligand and add
+                        cappings.
   -c CUTOFF, --cutoff CUTOFF
                         Cutoff distance to define chunking (in Angstroms). Default = 9 A.
   -b, --ignore-buffers  Do not remove buffers (solvent, ions etc.)
 
 Parameterization arguments:
-  -f {SMIRNOFF,GAFF2}, --small_molecule_forcefield {SMIRNOFF,GAFF2}
+  -f {SMIRNOFF,GAFF2}, --small-molecule-forcefield {SMIRNOFF,GAFF2}
                         Small molecule forcefield to use for parameterization.
   -w {tip3p,spce}, --water-model {tip3p,spce}
                         Water model to parameterize the solvent.
   -ff {amber99sb,amber14-all}, --protein-forcefield {amber99sb,amber14-all}
                         Protein forcefield to parameterize the chunked protein.
   -ion IONIC_STRENGTH, --ionic-strength IONIC_STRENGTH
-                        Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default = 0.1 M
+                        Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default
+                        = 0.1 M
   -s SOLVENT_BUFFER_DISTANCE, --solvent-buffer-distance SOLVENT_BUFFER_DISTANCE
-                        Buffer distance between the periodic box and the protein (in Angstroms). Default = 10 A
+                        Buffer distance between the periodic box and the protein (in Angstroms).
+                        Default = 10 A
   -water WATERS_TO_RETAIN, --waters-to-retain WATERS_TO_RETAIN
-                        PDB file containing structural water molecules to retain during simulations. Default is
-                        waters_to_retain.pdb.
-  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge
-                        assigned and add missing hydrogen atoms.
+                        PDB file containing structural water molecules to retain during
+                        simulations. Default is waters_to_retain.pdb.
+  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the
+                        right charge assigned and add missing hydrogen atoms.
 
 MD/SMD production arguments:
-  -F FORCE_CONSTANT_EQ, --force-constant_eq FORCE_CONSTANT_EQ
+  -F FORCE_CONSTANT_EQ, --force-constant-eq FORCE_CONSTANT_EQ
                         Force constant for equilibration.
   -n SMD_CYCLES, --smd-cycles SMD_CYCLES
                         Number of MD/SMD cycles to perform.
   -m MD_LENGTH, --md-length MD_LENGTH
                         Length of MD sampling between SMD runs in ns.
   -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
-                        Minimum WQB threshold; if not reached after each SMD cycle, further simulations will be
-                        terminated. If not set (default), all SMD cycles will be run.
+                        Minimum WQB threshold; if not reached after each SMD cycle, further
+                        simulations will be terminated. If not set (default), all SMD cycles will
+                        be run.
   -v INIT_VELOCITIES, --init-velocities INIT_VELOCITIES
                         Set initial velocities when heating.
   -d INIT_DISTANCE, --init-distance INIT_DISTANCE
                         Set initial hydrogen bond distance for SMD in Angstroms. Default = 2.5 A.
-
 ```
 A valid example is provided in the test subfolder, and can be executed using the command-line arguments like the following:
 
@@ -263,8 +267,8 @@ WQB or max_cycles threshold is reached.
 optional arguments:
   -h, --help            show this help message and exit
   -y YAML_INPUT, --yaml-input YAML_INPUT
-                        Input yaml file with all the arguments for the OpenMM simulations from the equilibrated
-                        system.
+                        Input yaml file with all the arguments for the OpenMM simulations from the
+                        equilibrated system.
   -c COORDINATES, --coordinates COORDINATES
                         AMBER input coordinates.
   -t TOPOLOGY, --topology TOPOLOGY
@@ -278,14 +282,17 @@ optional arguments:
   -m MD_LENGTH, --md-length MD_LENGTH
                         Length of MD sampling between SMD runs in ns.
   -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
-                        Minimum WQB threshold; if not reached after each SMD cycle, further simulations will be
-                        terminated. If not set (default), all SMD cycles will be run.
+                        Minimum WQB threshold; if not reached after each SMD cycle, further
+                        simulations will be terminated. If not set (default), all SMD cycles will
+                        be run.
   -v INIT_VELOCITIES, --init-velocities INIT_VELOCITIES
                         Set initial velocities when heating.
   -d INIT_DISTANCE, --init-distance INIT_DISTANCE
                         Set initial hydrogen bond distance for SMD in Angstroms. Default = 2.5 A.
   -g GPU_ID, --gpu-id GPU_ID
                         GPU ID; if not specified, runs on CPU only.
+  --keep-all-files      Disable cleaning up intermediate files during simulations.
+
 ```
 
 If prefered, the script can also be executed from a yaml file with the commands. A sample input.yaml file could be the following:
@@ -322,8 +329,8 @@ optional arguments:
 
 Main arguments:
   -y YAML_INPUT, --yaml-input YAML_INPUT
-                        Input yaml file with all the arguments for the system preparation and inputs/queueing for
-                        AMBER.
+                        Input yaml file with all the arguments for the system preparation and
+                        inputs/queueing for AMBER.
   -l LIGAND, --ligand LIGAND
                         Ligand MOL file to use as reference for interaction.
   -i INTERACTION, --interaction INTERACTION
@@ -332,7 +339,8 @@ Main arguments:
                         Protein or chunked protein in PDB format used as receptor.
 
 Chunking arguments:
-  --do-chunk            Chunk initial receptor based on the interaction with ligand and add cappings.
+  --do-chunk            Chunk initial receptor based on the interaction with ligand and add
+                        cappings.
   -c CUTOFF, --cutoff CUTOFF
                         Cutoff distance to define chunking (in Angstroms). Default = 9 A.
   -b, --ignore-buffers  Do not remove buffers (solvent, ions etc.)
@@ -344,27 +352,41 @@ Parameterization arguments:
                         Water model to parameterize the solvent.
   -q QUEUE_TEMPLATE, --queue-template QUEUE_TEMPLATE
                         Write out a queue file from templates.
-  -H, --HMR             Perform Hydrogen Mass Repartition on the topology and use it for the input files.
+  -H, --HMR             Perform Hydrogen Mass Repartition on the topology and use it for the input
+                        files.
   -n SMD_CYCLES, --smd-cycles SMD_CYCLES
                         Number of SMD replicas to perform.
   -W WQB_THRESHOLD, --wqb-threshold WQB_THRESHOLD
-                        Minimum WQB threshold; if not reached after each SMD cycle, further simulations will be
-                        terminated. If not set (default), all SMD cycles will be run.
+                        Minimum WQB threshold; if not reached after each SMD cycle, further
+                        simulations will be terminated. If not set (default), all SMD cycles will
+                        be run.
   -ff {amber99sb,amber14-all}, --protein-forcefield {amber99sb,amber14-all}
                         Protein forcefield to parameterize the chunked protein.
   -ion IONIC_STRENGTH, --ionic-strength IONIC_STRENGTH
-                        Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default = 0.1 M
+                        Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default
+                        = 0.1 M
   -s SOLVENT_BUFFER_DISTANCE, --solvent-buffer-distance SOLVENT_BUFFER_DISTANCE
-                        Buffer distance between the periodic box and the protein (in Angstroms). Default = 10 A
+                        Buffer distance between the periodic box and the protein (in Angstroms).
+                        Default = 10 A
   -water WATERS_TO_RETAIN, --waters-to-retain WATERS_TO_RETAIN
-                        PDB file containing structural water molecules to retain during simulations. Default is
-                        waters_to_retain.pdb.
+                        PDB file containing structural water molecules to retain during
+                        simulations. Default is waters_to_retain.pdb.
   --seed SEED           Specify seed for AMBER inputs.
+  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the
+                        right charge assigned and add missing hydrogen atoms.
+
+Batch argments:
   -B, --batch           Enable batch processing for multi-ligand SDF.
   -t THREADS, --threads THREADS
                         Define number of CPUs for batch processing.
-  -fl, --fix-ligand     Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge
-                        assigned and add missing hydrogen atoms.
+  --keep-all-files      Disable cleaning up intermediate files during preparation and simulations.
+  --resume              Enable the resume mode. Protecting LIG_target folders already prepared and
+                        starting from the not done, avoiding overwritting.
+  -i0 INDEX0, --index0 INDEX0
+                        Starting index for naming batch ligands. Default: 1.
+  -p PREFIX, --prefix PREFIX
+                        Prefix to name ligand folder during batch preparation. Default:
+                        LIG_target.
 ```
 
 ```{bash}
