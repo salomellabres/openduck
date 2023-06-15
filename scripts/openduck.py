@@ -163,7 +163,7 @@ def args_sanitation(parser, modes):
                 if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
                 if 'fix_ligand' in input_arguments : args.fix_ligand = bool(input_arguments['fix_ligand'])
                 if 'resume' in input_arguments : args.resume = bool(input_arguments['resume'])
-                if 'i0' in input_arguments : args.i0 = int(input_arguments['i0'])
+                if 'index0' in input_arguments : args.index0 = int(input_arguments['index0'])
                 if 'prefix' in input_arguments : args.prefix = str(input_arguments['prefix'])
                 if args.queue_template == 'local' and args.batch: args.queue_template = None # no local array script
                 if (not args.ligand.endswith('.sdf') and not args.ligand.endswith('.sd')) and args.batch:
@@ -653,7 +653,7 @@ def do_AMBER_preparation(args):
         base_dir = os.getcwd()
 
         r = [pool.apply_async(AMBER_prepare_ligand_in_folder,
-                          args=(ligand_string, j+args.i0, args.receptor, chunk_file,
+                          args=(ligand_string, j+args.index0, args.receptor, chunk_file,
                                 args.interaction, args.HMR, base_dir,
                                 args.small_molecule_forcefield, args.water_model, args.protein_forcefield,
                                 args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain, args.seed, args.fix_ligand, not args.keep_all_files, args.resume, args.prefix),
