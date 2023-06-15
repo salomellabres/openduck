@@ -526,7 +526,8 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
     elif os.path.isdir(f'{prefix}_{lig_indx}') and resume:
         print(f'WARNING: {prefix}_{lig_indx} already exist and will be skipped.')
         return(f'{prefix}_{lig_indx} skipped.')
-    os.mkdir(f'{prefix}_{lig_indx}')
+    os.makedirs(f'{prefix}_{lig_indx}', exist_ok=True)
+    pwd = os.getcwd()
     os.chdir(f'{prefix}_{lig_indx}')
     print(f'Working on {prefix}_{lig_indx}')
 
@@ -537,9 +538,9 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
         with redirect_stdout(o):
             # Copying files to ligand foldef; ligand and prot
             write_string_to_file(string=ligand_string, file=f'lig_{lig_indx}.mol')
-            shutil.copyfile(f'../{protein}', f'./{protein}', follow_symlinks=True)
-            if os.path.isfile(f'../{waters_to_retain}'):
-                shutil.copyfile(f'../{waters_to_retain}', f'./{waters_to_retain}', follow_symlinks=True)
+            shutil.copyfile(f'{pwd}/{protein}', f'./{protein}', follow_symlinks=True)
+            if os.path.isfile(f'{pwd}/{waters_to_retain}'):
+                shutil.copyfile(f'{pwd}/{waters_to_retain}', f'./{waters_to_retain}', follow_symlinks=True)
 
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
