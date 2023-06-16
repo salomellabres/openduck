@@ -8,7 +8,7 @@ nstlim={iterations}, dt={time_step},
 ntc=2, ntf=2, cut=9.0,
 ntxo=1, ntpr=2000, ntwx=0, ntwe=1000, ntwr=0, ioutfm=1,
 jar=1, ig={seed},
-ntr=1, restraintmask=':{chunk_residues} & !@H=', restraint_wt=1.0,
+ntr=1, restraintmask='(:{chunk_residues} & !@H=) {water_mask}', restraint_wt=1.0,
 /
 &wt type='DUMPFREQ', istep1={savefreq} /
 &wt type='END'   /
