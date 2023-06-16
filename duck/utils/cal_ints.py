@@ -125,6 +125,12 @@ def find_interaction_amber_input(combined_pmd, chunk_file, res_atom):
 
         return [index_one, index_two, math.sqrt(dist)]
 
+def clean_up_files(path='./', files_to_delete=[]):
+    for file in os.listdir(path):
+        # how to check what we want to keep?
+        if file in files_to_delete:
+            os.remove(path+file)
+
 def rename_mol2_residues(parmed_protein):
     """
     Crashes with altlocs currently...

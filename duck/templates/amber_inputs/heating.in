@@ -1,6 +1,6 @@
 #HEATING step to {temp}
 &cntrl
-imin=0,
+imin=0, iwrap=1,
 ntx=5, irest=1,
 ntxo=1, ntpr=2000, ntwx=0, ntwv=0, ntwe=0, ntwr=0, ioutfm=1,
 ntp=0, ntc=2,

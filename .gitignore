@@ -1,2 +1,7 @@
 *.pyc
 .idea/
+test/*
+.gitignore
+build
+dist
+openduck.egg-info

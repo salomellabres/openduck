@@ -6,8 +6,9 @@ from parmed.openmm import NetCDFReporter
 import pickle
 from duck.utils import duck_stuff
 from duck.utils import cal_ints
+from duck.utils.exceptions import EquilibrationError
 
-def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None):
+def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None, clean=False):
     """
     Function to perform minimization, heating, and density equilibration simulations of the protein-ligand complex in openMM.
 
@@ -115,7 +116,9 @@ def do_equlibrate(force_constant_equilibrate=1.0,gpu_id=0, keyInteraction=None):
     checkpoint = 'equil.chk'
     simulation.saveCheckpoint(checkpoint)
 
-
+    if clean:
+        files_to_delete = ['minimisation.pdb', 'heating.csv', 'heating.dcd', 'heating_final.pdb', '3_eq.nc', 'density_final.pdb']
+        cal_ints.clean_up_files(files_to_delete=files_to_delete)
     return [checkpoint]
 
 def equilibrate_from_amber_prep(interaction, prmtop_file, inpcrd_file, chunk,  gpu_id, force_constant_eq=1.0):

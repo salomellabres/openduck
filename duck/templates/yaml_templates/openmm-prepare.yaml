@@ -1,0 +1,24 @@
+# Example of the input yaml for openmm-prepare. Extended explanation of arguments and options can be consulted in openduck openmm-prepare -h
+# Main arguments
+ligand_mol : ligand.mol 
+receptor_pdb : receptor.pdb
+interaction : chain_resname_resid_atomname (i.e. A_ASN_140_ND2)
+
+# Chunking arguments
+do_chunk : True
+cutoff : 10
+ignore_buffers : False
+
+#Preparation arguments
+small_molecule_forcefield : GAFF2
+protein_forcefield : amber14-all
+water_model : spce
+ionic_strength : 0.1
+solvent_buffer_distance : 12
+waters_to_retain : None
+fix_ligand : True
+
+#Equilibration arguments
+do_equilibrate : True
+gpu_id : 0
+force_constant_eq : 1

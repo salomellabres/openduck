@@ -11,7 +11,7 @@
 
 #### Modules ####
 #Load modules (we are missing R in here, but python is installed, so we could use Maciej's scripts to check the WQB
-module load amber/20
+module load amber
 
 {functions}
 

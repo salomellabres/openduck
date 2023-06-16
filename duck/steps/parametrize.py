@@ -9,7 +9,7 @@ import sys
 import pickle
 from duck.utils.gen_system import generateSMIRNOFFStructureRDK, generateGAFFStructureRDK, generateEspalomaFFStructureRDK
 from pathlib import Path
-
+from duck.utils.cal_ints import clean_up_files
 
 def find_box_size(input_file="complex.pdb", add_factor=20):
     """
@@ -32,7 +32,7 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     val_in_ang = max(x_size, y_size, z_size) + add_factor * unit.angstrom
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
 
-def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1, waters_to_retain="waters_to_retain.pdb", fix_ligand_file=False):
+def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1, waters_to_retain="waters_to_retain.pdb", fix_ligand_file=False, clean_up=False):
     """
     Prepares a protein-ligand system by loading and modifying molecular structures and parameters,
     solvating the system in its water box, and parameterizing ions and solvent using the specified force fields.
@@ -173,6 +173,13 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
     pickle_out = open(complex, "wb")
     pickle.dump([combined_pmd], pickle_out)
     pickle_out.close()
+    if clean_up:
+        print('Removing intermediate files')
+        # a list of generated files to remove, so we don't delete the files that were in the directory beforehand.
+        files_to_delete = ['complex_solvated.pdb', 'fixed.pdb', 'complex.pdb', 'run.tleap', 'indice.text', 'no_buffer_altlocs.pdb', 'leap.log',
+                           'protein_out.pdb', 'protein_out_no_ace_nme.pdb', 'protonated_protein_out.pdb', 'ligand.pdb', ligand_file.split('.')[0]+'.pdb',
+                           'protein_prepared.pdb', 'chunk_leap.log']
+        clean_up_files(files_to_delete=files_to_delete)
     return [combined_pmd]
 
 def fix_ligand(ligand_file, fixed_ligand_file):
@@ -188,9 +195,10 @@ def fix_ligand(ligand_file, fixed_ligand_file):
             if atom.GetSymbol() == 'N' and atom.GetFormalCharge() == 0 and atom.GetExplicitValence() == 4:
                 atom.SetFormalCharge(1)
     Chem.SanitizeMol(mol)
-    fixed_mol = Chem.AddHs(mol, addCoords=True, onlyOnAtoms=[atom.GetIdx() for atom in mol.GetAtoms() if atom.GetSymbol() == 'C'])
+    fixed_mol = Chem.AddHs(mol, addCoords=True)
     sdwriter = Chem.SDWriter(fixed_ligand_file)
     sdwriter.write(fixed_mol)
+    sdwriter.close()
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

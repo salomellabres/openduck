@@ -10,7 +10,7 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, "README.rst"), encoding="utf-8") as f:
+with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 print((find_packages(exclude=["contrib", "docs", "tests"])))
@@ -19,7 +19,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version="0.2.0",
+    version="0.2.1.dev0",
     description="Application for running Dynamic Undocking",
     long_description=long_description,
     # The project's main homepage.
@@ -75,7 +75,7 @@ setup(
     # have to be included in MANIFEST.in as well.
     package_data={
         "duck": ["parameters/*.offxml", "parameters/waters/*", "parameters/tleap/*",
-                 "templates/amber_inputs/*", "templates/queueing_templates/*"]
+                 "templates/amber_inputs/*", "templates/queueing_templates/*", "templates/yaml_templates/*"]
     },
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:

@@ -1,0 +1,8 @@
+#Example input yaml for openmm-from-amber. For an extended explanation of the arguments and options consult openduck openmm-from-amber -h
+interaction: chain_resname_resid_atomname (i.e. A_ASN_140_ND2)
+coordinates: system_complex.inpcrd
+topology: system_complex.prmtop
+receptor: receptor.pdb
+smd_cycles: 20
+wqb_threshold: 6
+gpu_id: 0
