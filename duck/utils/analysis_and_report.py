@@ -356,6 +356,13 @@ def shapiro_test(work_df):
     else:
         return False
 
+def sample_jarz(norm_df, sample_size, temp):
+        
+        new_df = norm_df.sample(n=sample_size, replace=True,axis='columns')
+        new_df.columns = [f'Sample_{x}'for x in range(sample_size)]
+        jarz_df = get_expavg_FD_df(new_df, T=temp, calculate_FD=False)
+        return(jarz_df)
+
 def bootstrap_df(norm_data_list, sample_size = 20, samples=20, plot=True, temps=[300, 325]):
     """
     Perform bootstrap sampling of the normalized work dataframes to estimate the distribution of the Jarzynski free energy
@@ -373,12 +380,16 @@ def bootstrap_df(norm_data_list, sample_size = 20, samples=20, plot=True, temps=
     sample_dfs: list of pandas.DataFrame, a list of the bootstrapped samples for each temperature, containing the work values 
                 for each CV bin in each bootstrap iteration
 """
-    sample_dfs = []
+    import multiprocessing as mp
+    if mp.cpu_count() >= samples:
+        pool = mp.Pool(samples)
+    else:
+        pool = mp.Pool(mp.cpu_count())
+    jobs = []
     for temp, norm_df in zip(temps, norm_data_list):
         for i in range(samples):
-            new_df = norm_df.sample(n=sample_size, replace=True,axis='columns')
-            new_df.columns = [f'Sample_{x}'for x in range(sample_size)]
-            sample_dfs.append(get_expavg_FD_df(new_df, T=temp, calculate_FD=False))
+            jobs.append(pool.apply_async(sample_jarz, args=(norm_df, sample_size, temp)))
+    sample_dfs = [job.get() for job in jobs]
     flat_dict = {'CV':[],'Jarzynski':[]}
     for sample in sample_dfs:
         for i,row in sample.iterrows():
