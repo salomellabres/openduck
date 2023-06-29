@@ -330,11 +330,13 @@ def plot_expavg_FD(raw_data_df, FD_df):
     for i, duck_file in raw_data_df.T.iterrows():
         ax.plot(RC,duck_file.values, 'b', linewidth=0.5)
 
-    # Plot expavg (Boltzmann avg) & FD (Fluctuation dissipation)	
+    # Plot expavg (Boltzmann avg) & FD (Fluctuation dissipation)
+    #RC = [float(x) for x in RC]	
     ax.plot(RC, FD_df['expavg'].values, 'g', linewidth=4)
     ax.plot(RC, FD_df['FD'].values,'r', linewidth=4)
-    ax.set_xticks(np.append(RC[::250], RC[-1]))
-
+    #ax.set_xticks(np.array([2.5,3.0,3.5,4.0,4.5,5.0]))
+    ax.set_xticks(np.append(RC[::1000], RC[-1]))
+    #print(RC)
 
     ax.set_ylabel('Free Energy (kcal/mol)')
     ax.set_xlabel('Distance (\u212B)')

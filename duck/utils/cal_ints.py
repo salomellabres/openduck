@@ -20,7 +20,10 @@ def is_lig(atom):
     # Non-hydrogen
     if atom.residue.name == "UNL" and atom.atomic_number > 1:
         return True
-
+def is_good_atomtype(atom):
+    # Only oxygen and nitrogen
+    if atom.atomic_number in (7,8):
+        return True
 def find_atom(res_atom=None, prot_file=None, combined_pmd=None):
     '''
     Parse the combined_system pickle and protein file to find the atom id based on the interaction string in this format 'chain_resname_resid_atomname' (i.e. "A_LYS_311_N")
@@ -48,7 +51,7 @@ def find_result(res_atom=None, prot_file=None, combined_pmd=None):
     distance_atom_1, prot_atom = find_atom(res_atom, prot_file, combined_pmd)
     # Now find the one nearest
     distance_atom_2 = [
-        (x.idx, distance2(x, prot_atom)) for x in combined_pmd.atoms if is_lig(x)
+        (x.idx, distance2(x, prot_atom)) for x in combined_pmd.atoms if (is_lig(x) and is_good_atomtype(x))
     ]
     distance_atom_2.sort(key=operator.itemgetter(1))
     # These are the interactions to find
@@ -62,10 +65,13 @@ def find_interaction(res_atom=None, prot_file=None):
     '''
     Find interaction atom based on the protein_file and the interaction string in this format 'chain_resname_resid_atomname' (i.e. "A_LYS_311_N")
     '''
-    output_file = "indice.text"
+
+    '''
     if not res_atom or prot_file:
         if os.path.isfile(output_file):
             return json.load(open(output_file))
+    '''
+    output_file = "indice_prueba.text"
     # Read files
     print("loading pickle")
     pickle_in = open("complex_system.pickle", "rb")
@@ -147,4 +153,5 @@ if __name__ == "__main__":
     # Define the input
     res_atom = sys.argv[1]
     prot_file = sys.argv[2]
-    find_interaction(res_atom, prot_file)
+    protid, ligid, dist = find_interaction(res_atom, prot_file)
+    print('receptor ID %s\nligand ID %s\ndistance %s'%(protid+1, ligid+1, dist))
