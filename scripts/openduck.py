@@ -528,7 +528,7 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
     '''
     Generate the folder for a ligand preparation and prepare such ligand.
     '''
-    from duck.utils.amber_inputs import write_string_to_file
+    from duck.utils.amber_inputs import write_string_to_file, Queue_templates
     from contextlib import redirect_stdout,redirect_stderr
 
     os.chdir(base_dir)
@@ -560,7 +560,7 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
                                   forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
                                   box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up,water_steering=water_steering, waters_to_restrain=waters_to_restrain)
-
+    Queue_templates().copy_getWqbValues_script()
     return(f'{prefix}_{lig_indx} prepared correctly')
 
 #### main functions

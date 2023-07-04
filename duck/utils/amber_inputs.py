@@ -48,7 +48,7 @@ Methods:
     copy_getWqbValues_script(): Copies the getWqbValues.py script from the queue templates directory to the current working directory.
     write_queue_file(kind): Generates a queue file with the given kind (template) and writes it to disk.
     """
-    def __init__(self, wqb_threshold, replicas, hmr, array_limit=False, keep_intermediate_files=False):
+    def __init__(self, wqb_threshold=0, replicas=20, hmr=True, array_limit=False, keep_intermediate_files=False):
         '''
         Initialize the Queue_templates class.
 
