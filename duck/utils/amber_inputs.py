@@ -48,7 +48,7 @@ Methods:
     copy_getWqbValues_script(): Copies the getWqbValues.py script from the queue templates directory to the current working directory.
     write_queue_file(kind): Generates a queue file with the given kind (template) and writes it to disk.
     """
-    def __init__(self, wqb_threshold, replicas, hmr, array_limit=False, keep_intermediate_files=False):
+    def __init__(self, wqb_threshold=0, replicas=20, hmr=True, array_limit=False, keep_intermediate_files=False):
         '''
         Initialize the Queue_templates class.
 
@@ -69,7 +69,7 @@ Methods:
         self.queue_dir = self._get_queue_templates_dir()
         self.commands_string = self._get_commands_string()
         if not keep_intermediate_files:
-            self.commands_string += '\nfind -type f ! -regex ".*\(dat\|prmtop\|inpcrd\|in\|dist.*rst\)$" -delete\n'
+            self.commands_string += '\nfind -type f ! -regex ".*\(dat\|prmtop\|inpcrd\|in\|dist.*rst\|yaml)$" -delete\n'
         self.functions_string = self._get_functions_string()
     
     def _get_queue_templates_dir(self):
@@ -153,7 +153,7 @@ class Amber_templates(object):
     write_smd_inputs()
         Writes input files for the steered molecular dynamics simulation.
     """
-    def __init__(self, structure, interaction, hmr, seed = '-1'):
+    def __init__(self, structure, interaction, hmr, seed = '-1', waters_masked = None):
         '''
         Initialize the Amber_templates class.
 
@@ -170,7 +170,8 @@ class Amber_templates(object):
         
         self.templates_dir = self._get_amber_templates_dir()
         self.chunk_residues = self.extract_residuenumbers(structure)
-        
+        self.water_mask = self.get_restrained_waters_mask(structure, waters_masked)
+
     def _get_amber_templates_dir(self):
         '''
         A private method that returns the path to the Amber templates directory.
@@ -203,6 +204,18 @@ class Amber_templates(object):
         chunk_residues = self._re_range(r_id)
         return chunk_residues
     
+    def get_restrained_waters_mask(self, structure, nwaters = 0):
+        if not nwaters:
+            return ''
+        waters_to_mask = []
+        for r in structure.residues:
+            if r.name == 'WAT' or r.name == 'HOH':
+                waters_to_mask.append(int(r.number)+1)
+                if len(waters_to_mask) == nwaters:
+                    break
+        water_residues = self._re_range(waters_to_mask)
+        return f'| :{water_residues}'
+
     def _re_range(self, lst):
         '''
         A private method that converts a list of numbers into a string of ranges.
@@ -245,16 +258,16 @@ class Amber_templates(object):
         '''
         # min
         min_template = self._read_template('min.in')
-        self.write_string_to_file('1_min.in', min_template.format(chunk_residues=self.chunk_residues))
+        self.write_string_to_file('1_min.in', min_template.format(chunk_residues=self.chunk_residues, water_mask=self.water_mask))
         
         # heating
         init_heating_template = self._read_template('first_heating.in')
-        self.write_string_to_file('2_heating150.in', init_heating_template.format(chunk_residues=self.chunk_residues, seed =self.seed ))
+        self.write_string_to_file('2_heating150.in', init_heating_template.format(chunk_residues=self.chunk_residues, water_mask=self.water_mask, seed =self.seed ))
         
         heating_templates = self._read_template('heating.in')
-        self.write_string_to_file('2_heating200.in', heating_templates.format(chunk_residues=self.chunk_residues, seed =self.seed, temp='200.0'))
-        self.write_string_to_file('2_heating250.in', heating_templates.format(chunk_residues=self.chunk_residues, seed =self.seed, temp='250.0'))
-        self.write_string_to_file('2_heating300.in', heating_templates.format(chunk_residues=self.chunk_residues, seed =self.seed, temp='300.0'))
+        self.write_string_to_file('2_heating200.in', heating_templates.format(chunk_residues=self.chunk_residues, water_mask=self.water_mask, seed =self.seed, temp='200.0'))
+        self.write_string_to_file('2_heating250.in', heating_templates.format(chunk_residues=self.chunk_residues, water_mask=self.water_mask, seed =self.seed, temp='250.0'))
+        self.write_string_to_file('2_heating300.in', heating_templates.format(chunk_residues=self.chunk_residues, water_mask=self.water_mask, seed =self.seed, temp='300.0'))
 
         # to maintain the same simulation times despite hmr
         if self.hmr:
@@ -266,11 +279,11 @@ class Amber_templates(object):
         
         # equilibration
         equilibration_template = self._read_template('equilibration.in')
-        self.write_string_to_file('3_eq.in', equilibration_template.format(chunk_residues=self.chunk_residues, seed =self.seed, time_step=time_step, iterations=iterations))
+        self.write_string_to_file('3_eq.in', equilibration_template.format(chunk_residues=self.chunk_residues, water_mask=self.water_mask, seed =self.seed, time_step=time_step, iterations=iterations))
 
         # production
         md_template = self._read_template('md.in')
-        self.write_string_to_file('md.in', md_template.format(chunk_residues=self.chunk_residues, seed=self.seed, time_step=time_step, iterations=iterations))
+        self.write_string_to_file('md.in', md_template.format(chunk_residues=self.chunk_residues, water_mask=self.water_mask, seed=self.seed, time_step=time_step, iterations=iterations))
         
         # disang
         prot_idx, lig_idx, pairmeandistance_i = self.interaction
@@ -295,8 +308,8 @@ class Amber_templates(object):
         
         # smd
         smd_template = self._read_template('smd.in')
-        self.write_string_to_file('duck.in', smd_template.format(temp='300.0', chunk_residues=self.chunk_residues, seed=self.seed, time_step=time_step, iterations=iterations, savefreq=savefreq))
-        self.write_string_to_file('duck_325K.in', smd_template.format(temp='325.0', chunk_residues=self.chunk_residues, seed=self.seed, time_step=time_step, iterations=iterations, savefreq=savefreq))
+        self.write_string_to_file('duck.in', smd_template.format(temp='300.0', chunk_residues=self.chunk_residues, water_mask=self.water_mask, seed=self.seed, time_step=time_step, iterations=iterations, savefreq=savefreq))
+        self.write_string_to_file('duck_325K.in', smd_template.format(temp='325.0', chunk_residues=self.chunk_residues, water_mask=self.water_mask, seed=self.seed, time_step=time_step, iterations=iterations, savefreq=savefreq))
 
         # disang
         prot_idx, lig_idx, pairmeandistance_i = self.interaction

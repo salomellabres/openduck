@@ -165,9 +165,15 @@ def args_sanitation(parser, modes):
                 if 'resume' in input_arguments : args.resume = bool(input_arguments['resume'])
                 if 'index0' in input_arguments : args.index0 = int(input_arguments['index0'])
                 if 'prefix' in input_arguments : args.prefix = str(input_arguments['prefix'])
+                if 'water_steering' in input_arguments : args.water_steering = bool(input_arguments['water_steering'])
+                if 'waters_to_restrain' in input_arguments : args.waters_to_restrain = int(input_arguments['waters_to_restrain'])
+                if 'ligand_hb_elements' in input_arguments : args.ligand_hb_elements = [int(x) for x in str(input_arguments['ligand_hb_elements']).split(',')]
+                
                 if args.queue_template == 'local' and args.batch: args.queue_template = None # no local array script
                 if (not args.ligand.endswith('.sdf') and not args.ligand.endswith('.sd')) and args.batch:
                     modes.choices['amber-prepare'].error('Batch processing requires the ligand to be in SD or SDF format.')
+                if args.water_steering and not args.waters_to_restrain:
+                    args.waters_to_restrain = 1
             else:
                 modes.choices['amber-prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -298,7 +304,7 @@ def parse_input():
     openmm_prmtop.add_argument('-g', '--gpu-id', type=int, default=None, help='GPU ID; if not specified, runs on CPU only.')
     openmm_prmtop.add_argument('--keep-all-files', default=False, action='store_true', help='Disable cleaning up intermediate files during simulations.')
 
-    #Arguments for OPENMM_PREPARATION
+    #Arguments for AMBER_PREPARATION
     amber = modes.add_parser('amber-prepare', help='Preparation of systems, inputs and queue files for AMBER simulations.', description='Preparation of systems, inputs and queue files for AMBER simulations. The ligand, receptor and solvation box are parameterized with the specified parameters. If specified, the receptor is reduced to a chunked pocket for a faster production. The input and queue files are prepared from templates found in the duck/templates directory.')
     amber_main = amber.add_argument_group('Main arguments')
     amber.set_defaults(mode='Amber-preparation')
@@ -320,7 +326,7 @@ def parse_input():
     amber_prep.add_argument('-ff','--protein-forcefield', default='amber99sb', type=str.lower, choices=('amber99sb', 'amber14-all'), help='Protein forcefield to parameterize the chunked protein.')
     amber_prep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default = 0.1 M')
     amber_prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein (in Angstroms). Default = 10 A')
-    amber_prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB file containing structural water molecules to retain during simulations. Default is waters_to_retain.pdb.')
+    amber_prep.add_argument('--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB file containing structural water molecules to retain during simulations. Default is waters_to_retain.pdb.')
     amber_prep.add_argument('--seed', default='-1', type=str, help='Specify seed for AMBER inputs.')
     amber_prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add missing hydrogen atoms.')
     amber_prep_batch = amber.add_argument_group('Batch argments')
@@ -331,6 +337,10 @@ def parse_input():
     amber_prep_batch.add_argument('-i0', '--index0', default=1, type=int, help='Starting index for naming batch ligands. Default: 1.')
     amber_prep_batch.add_argument('-p', '--prefix', default='LIG_target', type=str, help='Prefix to name ligand folder during batch preparation. Default: LIG_target.')
     
+    amber_prep.add_argument('--water-steering', default=False, action='store_true', help='Enable water steering, which will use the waters-to-retain as interaction vector to steer the ligand.')
+    amber_prep.add_argument('--waters-to-restrain', default=None, type=int, help='Number (and order) of waters to restraint. Default is None when executing in the normal mode and 1 when using water-steering.')
+    amber_prep.add_argument('-e', '--ligand-hb-elements', default=[7,8], type=int, nargs='+', help='Control which elements are accepted in the ligand to define the steering interaction. Specify using the atomic number separated with a space. Default is 7 and 8 (nitrogen and oxygen)')
+
     #Arguments for report
     report = modes.add_parser('report', help='Generate a report for OpenDUck results.', description='Generate a table report for dynamic undocking output. For a multi-ligand report, use the pattern flag with wildcards to the directories.')
     report.set_defaults(mode='Report')
@@ -469,7 +479,10 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
         else:
             print(f'Wqb: {wqb}')
 
-def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,  small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml', ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1', fix_ligand_file=False, clean_up=False):
+def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,
+                        small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml',
+                        ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1',
+                        fix_ligand_file=False, clean_up=False, water_steering=False, waters_to_restrain=None, lig_HB_elements=[7,8]):
     '''
     Prepares the system for AMBER simulation by parameterizing the ligand and finding the specified interaction
     between the ligand and protein. The resulting complex is saved to a pickle file, 'complex_system.pickle', and
@@ -493,13 +506,18 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     from duck.steps.parametrize import prepare_system
     from duck.utils.cal_ints import find_interaction
     from duck.utils.amber_inputs import Amber_templates
+
     # Parameterize the ligand
     prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str,
                    hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str,
                    box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength, waters_to_retain=waters_to_retain, fix_ligand_file=fix_ligand_file, clean_up=clean_up)
 
     # Now find the interaction and save to a file
-    results = find_interaction(interaction, protein_file)
+    if not water_steering:
+        results = find_interaction(interaction, protein_file, lig_HB_elements)
+    else:
+        results = find_interaction(interaction, waters_to_retain, lig_HB_elements)
+
     with open('complex_system.pickle', 'rb') as f:
         p = pickle.load(f) + results
     with open('complex_system.pickle', 'wb') as f:
@@ -507,14 +525,14 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     #p is a tupple with the following objects inside (parmed_structure, prot_index, ligand_index, pairmeandistance)
     p[0].save('system_complex.inpcrd', overwrite=True)
 
-    AMBER = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed)
+    AMBER = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed, waters_masked=waters_to_restrain)
     AMBER.write_all_inputs()
 
-def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False, clean_up=False, resume=False, prefix='LIG_target'):
+def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False, clean_up=False, resume=False, prefix='LIG_target', water_steering=False, waters_to_restrain=None):
     '''
     Generate the folder for a ligand preparation and prepare such ligand.
     '''
-    from duck.utils.amber_inputs import write_string_to_file
+    from duck.utils.amber_inputs import write_string_to_file, Queue_templates
     from contextlib import redirect_stdout,redirect_stderr
 
     os.chdir(base_dir)
@@ -545,8 +563,8 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
                                   forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
-                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up)
-
+                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up,water_steering=water_steering, waters_to_restrain=waters_to_restrain)
+    Queue_templates().copy_getWqbValues_script()
     return(f'{prefix}_{lig_indx} prepared correctly')
 
 #### main functions
@@ -657,21 +675,27 @@ def do_AMBER_preparation(args):
                           args=(ligand_string, j+args.index0, args.receptor, chunk_file,
                                 args.interaction, args.HMR, base_dir,
                                 args.small_molecule_forcefield, args.water_model, args.protein_forcefield,
-                                args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain, args.seed, args.fix_ligand, not args.keep_all_files, args.resume, args.prefix),
+                                args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain,
+                                args.seed, args.fix_ligand, not args.keep_all_files, args.resume, args.prefix,
+                                args.water_steering, args.waters_to_restrain, args.ligand_hb_elements),
                           callback=log_result,
                           error_callback=handle_error) for j, ligand_string in enumerate(ligand_string_generator(args.ligand))]
         pool.close()
         pool.join()
 
-        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, array_limit=len(r), hmr=args.HMR, keep_intermediate_files=args.keep_all_files)
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles,
+                                array_limit=len(r), hmr=args.HMR, keep_intermediate_files=args.keep_all_files)
     else:
         if args.threads != 1:
             print('WARNING: The number of threads does not have an impact if the batch mode is not enabled.')
         prepare_sys_for_amber(args.ligand, args.receptor, chunk_file, args.interaction, args.HMR,
         small_molecule_forcefield=args.small_molecule_forcefield, water_ff_str = args.water_model,
         forcefield_str=f'{args.protein_forcefield}.xml', ionic_strength = args.ionic_strength,
-        box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed, fix_ligand_file=args.fix_ligand, clean_up=not args.keep_all_files)
-        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, hmr=args.HMR)
+        box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed,
+        fix_ligand_file=args.fix_ligand, clean_up=not args.keep_all_files, water_steering= args.water_steering,
+        waters_to_restrain = args.waters_to_restrain, lig_HB_elements=args.ligand_hb_elements)
+
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, hmr=args.HMR, keep_intermediate_files=args.keep_all_files)
     queue.write_queue_file(kind=args.queue_template)
 
 def do_report(args):

@@ -9,7 +9,7 @@ ntb=2, ntf=2, cut=9.0,
 ntt=3, temp0=300.0, ig={seed},  gamma_ln=4.0,
 nstlim={iterations}, dt={time_step},
 ntr=1,
-restraintmask=':{chunk_residues} & !@H=', 
+restraintmask='(:{chunk_residues} & !@H=) {water_mask}', 
 restraint_wt=1.0,
 nmropt=1,
 &end

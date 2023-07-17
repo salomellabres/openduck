@@ -3,6 +3,6 @@
 imin=1, maxcyc=2000,
 ntpr=100,
 ntr=1,
-restraintmask=':{chunk_residues} & !@H=',
+restraintmask='(:{chunk_residues} & !@H=) {water_mask}',
 restraint_wt=1.0,
 /
