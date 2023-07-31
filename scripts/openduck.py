@@ -528,7 +528,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     AMBER = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed, waters_masked=waters_to_restrain)
     AMBER.write_all_inputs()
 
-def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False, clean_up=False, resume=False, prefix='LIG_target', water_steering=False, waters_to_restrain=None):
+def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False, clean_up=False, resume=False, prefix='LIG_target', water_steering=False, waters_to_restrain=None, ligands_HB_elements=[7,8]):
     '''
     Generate the folder for a ligand preparation and prepare such ligand.
     '''
@@ -563,7 +563,7 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
                                   forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
-                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up,water_steering=water_steering, waters_to_restrain=waters_to_restrain)
+                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up,water_steering=water_steering, waters_to_restrain=waters_to_restrain, lig_HB_elements=ligand_HB_elements)
     Queue_templates().copy_getWqbValues_script()
     return(f'{prefix}_{lig_indx} prepared correctly')
 
