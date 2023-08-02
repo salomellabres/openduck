@@ -2,7 +2,7 @@ import os, pkg_resources
 from rdkit import Chem
 import parmed
 from parmed.geometry import distance2
-from duck.utils.cal_ints import find_atom
+from duck.utils.cal_ints import find_atom, clean_up_files
 
 
 def return_tleap(prot_protein_chunk, out_save, disulfides=[]):
@@ -324,7 +324,7 @@ def add_ter_records(input_file, output_file):
             output_f.write("TER\n")
     return [output_file]
 
-def duck_chunk(prot_file, mol_file, interaction, cutoff, output_name = 'protein_out.pdb', ignore_buffers=False):
+def duck_chunk(prot_file, mol_file, interaction, cutoff, output_name = 'protein_out.pdb', ignore_buffers=False, keep_all_files=False):
     """
     Performs chunking of a protein structure in the presence of a small molecule within a cutoff radius.
 
@@ -351,6 +351,8 @@ def duck_chunk(prot_file, mol_file, interaction, cutoff, output_name = 'protein_
     # Protontate
     disulfides = find_disulfides(output_name)
     do_tleap(output_name, chunk_protein_prot, disulfides)
+    if not keep_all_files:
+        clean_up_files(files_to_delete=[output_name.replace(".pdb", "_no_ace_nme.pdb"), 'chunk_leap.log', 'leap.log', 'run.tleap', 'no_buffer_altlocs.pdb'])
     return chunk_protein_prot
 
 if __name__ == "__main__":

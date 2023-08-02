@@ -202,6 +202,7 @@ def args_sanitation(parser, modes):
                 if 'cutoff' in input_arguments: args.cutoff =  float(input_arguments['cutoff'])
                 if 'ignore_buffers' in input_arguments: args.ignore_buffers =  bool(input_arguments['ignore_buffers'])
                 if 'output' in input_arguments: args.output =  str(input_arguments['output'])
+                if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
             else:
                 modes.choices['chunk'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -662,7 +663,7 @@ def do_AMBER_preparation(args):
     if args.do_chunk:
         from duck.steps.chunk import duck_chunk
         print('Chunking protein')
-        chunk_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers)
+        chunk_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers, keep_all_files=args.keep_all_files)
     else: chunk_file = args.receptor
 
     if args.batch:
@@ -747,7 +748,7 @@ def do_OpenMM_preparation(args):
     if args.do_chunk:
         print('Chunking protein')
         from duck.steps.chunk import duck_chunk
-        chunked_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers)
+        chunked_file = duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff, ignore_buffers=args.ignore_buffers, keep_all_files=args.keep_all_files)
     else: chunked_file = args.receptor
     # prepare system
     prepare_system(args.ligand, chunked_file, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
@@ -786,7 +787,7 @@ def main():
         do_report(args)
     elif args.mode == 'Chunk':
         from duck.steps.chunk import duck_chunk
-        duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff,output_name=args.output, ignore_buffers=args.ignore_buffers)
+        duck_chunk(args.receptor,args.ligand,args.interaction,args.cutoff,output_name=args.output, ignore_buffers=args.ignore_buffers, keep_all_files=args.keep_all_files)
     else:
         parser.print_help()
 if __name__ == '__main__':
