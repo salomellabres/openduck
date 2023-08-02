@@ -365,6 +365,7 @@ def parse_input():
     chunk.add_argument('-c', '--cutoff', type=float, default = 9, help='Cutoff distance to define chunking (in Angstroms). Default = 9 A.')
     chunk.add_argument('-b', '--ignore-buffers', action='store_true', help='Do not remove buffers (solvent, ions etc.)')
     chunk.add_argument('-o', '--output', type=str, default='protein_out.pdb',help='Output format for the chunked protein receptor.')
+    chunk.add_argument('--keep-all-files', default=False, action='store_true', help='Disable cleaning up intermediate files during preparation.')
 
     args = args_sanitation(parser, modes)
 
