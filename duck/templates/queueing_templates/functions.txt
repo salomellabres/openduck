@@ -47,7 +47,11 @@ check_WQB(){{
    are_we_above_the_limit=$(echo "$lowest_wqb < $wqb_limit" | bc )
    if [ "$are_we_above_the_limit" == "1" ]; then
       echo "Wqb lower than ${wqb_limit}, stoping DUck run"
-      cp -r ./* $LIG_TARGET/
+
+      # check if LIG_TARGET is set; if so, copy files there
+      if [ $LIG_TARGET ]; then
+          cp -r ./* $LIG_TARGET/
+      fi
       exit 
    fi
 }}
