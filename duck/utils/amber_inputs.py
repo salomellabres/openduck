@@ -69,7 +69,7 @@ Methods:
         self.queue_dir = self._get_queue_templates_dir()
         self.commands_string = self._get_commands_string()
         if not keep_intermediate_files:
-            self.commands_string += '\nfind -type f ! -regex ".*\(dat\|prmtop\|inpcrd\|in\|dist.*rst\|yaml)$" -delete\n'
+            self.commands_string += '\nfind -type f ! -regex ".*\(dat\|prmtop\|inpcrd\|in\|dist.*rst\|yaml\)$" -delete\n'
         self.functions_string = self._get_functions_string()
     
     def _get_queue_templates_dir(self):
