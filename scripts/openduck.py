@@ -565,7 +565,7 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
                                   forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
-                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up,water_steering=water_steering, waters_to_restrain=waters_to_restrain, lig_HB_elements=ligand_HB_elements)
+                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up,water_steering=water_steering, waters_to_restrain=waters_to_restrain, lig_HB_elements=ligands_HB_elements)
     Queue_templates().copy_getWqbValues_script()
     return(f'{prefix}_{lig_indx} prepared correctly')
 
