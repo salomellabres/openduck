@@ -1,7 +1,0 @@
-interaction: A_ARG_25_NH2
-coordinates: system_complex.inpcrd
-topology: system_complex.prmtop
-receptor: 1a28_ARG766_NH2_chunk.pdb
-smd_cycles: 1
-wqb_threshold: 1
-gpu_id: 0

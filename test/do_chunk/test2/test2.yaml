@@ -1,6 +1,0 @@
-interaction : A_ARG_766_NH2
-cutoff : 9
-receptor_pdb : 1a28_prot.pdb
-ligand_mol : 1a28_lig.mol
-output: chunk_from_test2yamlinput.pdb
-ignore_buffers: True

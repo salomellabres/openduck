@@ -1,5 +1,0 @@
-equilibrated_system : equil.chk
-pickle : complex_system.pickle
-smd_cycles : 2
-md_length : 0.25
-gpu_id : 0

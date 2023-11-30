@@ -1,5 +1,0 @@
-interaction : A_LEU_83_N
-cutoff : 10
-receptor_pdb : 2r3k.pdb
-ligand_mol : cdk2_lig.mol
-output: chunk_from_test1yamlinput.pdb
