@@ -180,7 +180,7 @@ def get_Wqb_value(file_duck_dat, mode='amber'):
                 Wqb_min_index = index_global
                 break
     if not Wqb_min_index:
-        eprint('Warning, could not find minima in {file_duck_dat}')
+        eprint(f'Warning, could not find minima in {file_duck_dat}')
         return (0, data, 0)
     Wqb_min = Work[Wqb_min_index]
     sub_max_data = data[Wqb_min_index:]
