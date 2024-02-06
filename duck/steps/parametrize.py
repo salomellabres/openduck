@@ -34,7 +34,7 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
 
 def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p',
                    hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1,
-                   waters_to_retain="waters_to_retain.pdb", fix_ligand_file=False, clean_up=False):
+                   waters_to_retain="waters_to_retain.pdb", custom_forcefield=None, fix_ligand_file=False, clean_up=False):
     """
     Prepares a protein-ligand system by loading and modifying molecular structures and parameters,
     solvating the system in its water box, and parameterizing ions and solvent using the specified force fields.
@@ -94,7 +94,10 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
     print("loading system")
    # protein = parmed.load_file("fixed.pdb")["!(:HOH,NA,CL)"]  # remove ions and water
     protein = parmed.load_file("fixed.pdb")  # don't remove ions and water
-    forcefield = app.ForceField(forcefield_str)
+    if custom_forcefield:
+        forcefield = app.ForceField(forcefield_str, custom_forcefield)
+    else:
+        forcefield = app.ForceField(forcefield_str)
     protein_system = forcefield.createSystem(protein.topology)
     protein_pmd = parmed.openmm.load_topology(
         protein.topology, protein_system, protein.positions
