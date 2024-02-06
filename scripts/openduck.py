@@ -557,6 +557,8 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
             # Copying files to ligand foldef; ligand and prot
             write_string_to_file(string=ligand_string, file=f'lig_{lig_indx}.mol')
             shutil.copyfile(f'{pwd}/{protein}', f'./{protein}', follow_symlinks=True)
+            if protein != chunk:
+                shutil.copyfile(f'{pwd}/{chunk}', f'./{chunk}', follow_symlinks=True)
             if os.path.isfile(f'{pwd}/{waters_to_retain}'):
                 shutil.copyfile(f'{pwd}/{waters_to_retain}', f'./{waters_to_retain}', follow_symlinks=True)
 
