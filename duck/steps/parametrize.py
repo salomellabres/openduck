@@ -32,7 +32,9 @@ def find_box_size(input_file="complex.pdb", add_factor=20):
     val_in_ang = max(x_size, y_size, z_size) + add_factor * unit.angstrom
     return int(val_in_ang.value_in_unit(unit.angstrom)) + 1
 
-def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p', hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1, waters_to_retain="waters_to_retain.pdb", fix_ligand_file=False, clean_up=False):
+def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", water_ff_str = 'tip3p',
+                   hmr=False, small_molecule_ff = 'SMIRNOFF', box_buffer_distance = 10, ionicStrength = 0.1,
+                   waters_to_retain="waters_to_retain.pdb", fix_ligand_file=False, clean_up=False):
     """
     Prepares a protein-ligand system by loading and modifying molecular structures and parameters,
     solvating the system in its water box, and parameterizing ions and solvent using the specified force fields.
@@ -101,6 +103,11 @@ def prepare_system(ligand_file, protein_file, forcefield_str="amber99sb.xml", wa
     if Path(waters_to_retain).exists():
         print(f'waters retained from {Path(waters_to_retain)}')
         waters_retained = parmed.load_file(waters_to_retain)
+        #check if waters are well named
+        for atom in waters_retained:
+            if atom.residue.name != 'HOH':
+                sys.stderr.write(f'Warning: renaming {atom.residue.name}:{atom.name} to HOH:{atom.name}\n')
+                atom.residue.name = 'HOH'
         prot_lig_pmd = protein_pmd + ligand_pmd + waters_retained
     else:
         prot_lig_pmd = protein_pmd + ligand_pmd
