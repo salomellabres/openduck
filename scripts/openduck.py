@@ -34,6 +34,7 @@ def args_sanitation(parser, modes):
                 if 'ionic_strength' in input_arguments: args.ionic_strength =  float(input_arguments['ionic_strength'])
                 if 'solvent_buffer_distance' in input_arguments: args.solvent_buffer_distance =  float(input_arguments['solvent_buffer_distance'])
                 if 'waters_to_retain' in input_arguments: args.waters_to_retain =  str(input_arguments['waters_to_retain'])
+                if 'custom_forcefield' in input_arguments: args.waters_to_retain =  str(input_arguments['custom_forcefield'])
                 if 'smd_cycles' in input_arguments: args.smd_cycles =  int(input_arguments['smd_cycles'])
                 if 'md_length' in input_arguments: args.md_length =  float(input_arguments['md_length'])
                 if 'init_velocities' in input_arguments: args.init_velocities =  float(input_arguments['init_velocities'])
@@ -94,6 +95,7 @@ def args_sanitation(parser, modes):
                 if 'ionic_strength' in input_arguments: args.ionic_strength =  float(input_arguments['ionic_strength'])
                 if 'solvent_buffer_distance' in input_arguments: args.solvent_buffer_distance =  float(input_arguments['solvent_buffer_distance'])
                 if 'waters_to_retain' in input_arguments: args.waters_to_retain =  str(input_arguments['waters_to_retain'])
+                if 'custom_forcefield' in input_arguments: args.waters_to_retain =  str(input_arguments['custom_forcefield'])
                 if 'do_equilibrate' in input_arguments: args.do_equilibrate =  str(input_arguments['do_equilibrate'])
                 if 'gpu_id' in input_arguments: args.gpu_id =  str(input_arguments['gpu_id'])
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
@@ -153,6 +155,7 @@ def args_sanitation(parser, modes):
                 if 'ionic_strength' in input_arguments: args.ionic_strength =  float(input_arguments['ionic_strength'])
                 if 'solvent_buffer_distance' in input_arguments: args.solvent_buffer_distance =  float(input_arguments['solvent_buffer_distance'])
                 if 'waters_to_retain' in input_arguments: args.waters_to_retain =  str(input_arguments['waters_to_retain'])
+                if 'custom_forcefield' in input_arguments: args.waters_to_retain =  str(input_arguments['custom_forcefield'])
                 if 'seed' in input_arguments: args.seed =  str(input_arguments['seed'])
                 if 'queue_template' in input_arguments: args.queue_template = str(input_arguments['queue_template'])
                 if 'HMR' in input_arguments: args.HMR = bool(input_arguments['HMR'])
@@ -240,6 +243,7 @@ def parse_input():
     openmm_preprep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default = 0.1 M')
     openmm_preprep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein (in Angstroms). Default = 10 A')
     openmm_preprep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB file containing structural water molecules to retain during simulations. Default is waters_to_retain.pdb.')
+    openmm_preprep.add_argument('-cf','--custom-forcefield', default=None, type=str, help='Custom forcefield (in Open Force Field XML format) to parameterize e.g. a cofactor or unnatural amino acid present in the PDB file included under --receptor. Will be used in addition to the forcefields specified by --small-molecule-forcefield and --protein-forcefield.')
     openmm_preprep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add missing hydrogen atoms.')
     openmm_prepeq = openmm_prep.add_argument_group('Equilibration arguments')
     openmm_prepeq.add_argument('--do-equilibrate', action='store_true', help='Perform equilibration after preparing system.')
@@ -267,6 +271,7 @@ def parse_input():
     prep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default = 0.1 M')
     prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein (in Angstroms). Default = 10 A')
     prep.add_argument('-water','--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB file containing structural water molecules to retain during simulations. Default is waters_to_retain.pdb.')
+    prep.add_argument('-cf','--custom-forcefield', default=None, type=str, help='Custom forcefield (in Open Force Field XML format) to parameterize e.g. a cofactor or unnatural amino acid present in the PDB file included under --receptor. Will be used in addition to the forcefields specified by --small-molecule-forcefield and --protein-forcefield.')
     prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add missing hydrogen atoms.')
     prod = full.add_argument_group('MD/SMD production arguments')
     prod.add_argument('-F', '--force-constant-eq', type=float, default = 1, help='Force constant for equilibration.')
@@ -328,6 +333,7 @@ def parse_input():
     amber_prep.add_argument('-ion','--ionic-strength', default=0.1, type=float, help='Ionic strength (concentration) of the counter ion salts (Na+/Cl-). Default = 0.1 M')
     amber_prep.add_argument('-s','--solvent-buffer-distance', default=10, type=float, help='Buffer distance between the periodic box and the protein (in Angstroms). Default = 10 A')
     amber_prep.add_argument('--waters-to-retain', default='waters_to_retain.pdb', type=str, help='PDB file containing structural water molecules to retain during simulations. Default is waters_to_retain.pdb.')
+    amber_prep.add_argument('-cf','--custom-forcefield', default=None, type=str, help='Custom forcefield (in Open Force Field XML format) to parameterize e.g. a cofactor or unnatural amino acid present in the PDB file included under --receptor. Will be used in addition to the forcefields specified by --small-molecule-forcefield and --protein-forcefield.')
     amber_prep.add_argument('--seed', default='-1', type=str, help='Specify seed for AMBER inputs.')
     amber_prep.add_argument('-fl','--fix-ligand', action='store_true', help='Some simple fixes for the ligand: ensure tetravalent nitrogens have the right charge assigned and add missing hydrogen atoms.')
     amber_prep_batch = amber.add_argument_group('Batch argments')
@@ -483,8 +489,8 @@ def duck_smd_runs(input_checkpoint, pickle, num_runs, md_len, gpu_id, start_dist
 
 def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HMR,
                         small_molecule_forcefield='SMIRNOFF', water_ff_str = 'tip3p.xml', forcefield_str='amber99sb.xml',
-                        ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", seed='-1',
-                        fix_ligand_file=False, clean_up=False, water_steering=False, waters_to_restrain=None, lig_HB_elements=[7,8]):
+                        ionic_strength = 0.1, box_buffer_distance = 10, waters_to_retain="waters_to_retain.pdb", custom_forcefield=None,
+                        seed='-1', fix_ligand_file=False, clean_up=False, water_steering=False, waters_to_restrain=None, lig_HB_elements=[7,8]):
     '''
     Prepares the system for AMBER simulation by parameterizing the ligand and finding the specified interaction
     between the ligand and protein. The resulting complex is saved to a pickle file, 'complex_system.pickle', and
@@ -512,7 +518,8 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     # Parameterize the ligand
     prepare_system(ligand_file, chunk_file, forcefield_str=forcefield_str,
                    hmr=HMR, small_molecule_ff=small_molecule_forcefield, water_ff_str = water_ff_str,
-                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength, waters_to_retain=waters_to_retain, fix_ligand_file=fix_ligand_file, clean_up=clean_up)
+                   box_buffer_distance = box_buffer_distance, ionicStrength = ionic_strength, waters_to_retain=waters_to_retain,
+                   custom_forcefield=custom_forcefield, fix_ligand_file=fix_ligand_file, clean_up=clean_up)
 
     # Now find the interaction and save to a file
     if not water_steering:
@@ -530,7 +537,7 @@ def prepare_sys_for_amber(ligand_file, protein_file, chunk_file, interaction, HM
     AMBER = Amber_templates(structure=p[0], interaction=p[1:],hmr=HMR, seed=seed, waters_masked=waters_to_restrain)
     AMBER.write_all_inputs()
 
-def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', seed='-1', fix_ligand=False, clean_up=False, resume=False, prefix='LIG_target', water_steering=False, waters_to_restrain=None, ligands_HB_elements=[7,8]):
+def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, interaction, HMR, base_dir, small_molecule_forcefield = 'SMIRNOFF', water_model = 'tip3p', forcefield = 'amber99sb', ion_strength = 0.1, box_buffer_distance = 10, waters_to_retain='waters_to_retain.pdb', custom_forcefield=None, seed='-1', fix_ligand=False, clean_up=False, resume=False, prefix='LIG_target', water_steering=False, waters_to_restrain=None, ligands_HB_elements=[7,8]):
     '''
     Generate the folder for a ligand preparation and prepare such ligand.
     '''
@@ -567,7 +574,9 @@ def AMBER_prepare_ligand_in_folder(ligand_string, lig_indx, protein, chunk, inte
             prepare_sys_for_amber(f'lig_{lig_indx}.mol', protein, chunk, interaction, HMR,
                                   small_molecule_forcefield=small_molecule_forcefield, water_ff_str=f'{water_model}',
                                   forcefield_str=f'{forcefield}.xml', ionic_strength = ion_strength,
-                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}", seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up,water_steering=water_steering, waters_to_restrain=waters_to_restrain, lig_HB_elements=ligands_HB_elements)
+                                  box_buffer_distance = box_buffer_distance, waters_to_retain=f"{waters_to_retain}",
+                                  custom_forcefield=custom_forcefield, seed=seed, fix_ligand_file=fix_ligand, clean_up=clean_up,
+                                  water_steering=water_steering, waters_to_restrain=waters_to_restrain, lig_HB_elements=ligands_HB_elements)
     Queue_templates().copy_getWqbValues_script()
     return(f'{prefix}_{lig_indx} prepared correctly')
 
@@ -679,7 +688,7 @@ def do_AMBER_preparation(args):
                           args=(ligand_string, j+args.index0, args.receptor, chunk_file,
                                 args.interaction, args.HMR, base_dir,
                                 args.small_molecule_forcefield, args.water_model, args.protein_forcefield,
-                                args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain,
+                                args.ionic_strength, args.solvent_buffer_distance, args.waters_to_retain, args.custom_forcefield,
                                 args.seed, args.fix_ligand, not args.keep_all_files, args.resume, args.prefix,
                                 args.water_steering, args.waters_to_restrain, args.ligand_hb_elements),
                           callback=log_result,
@@ -695,8 +704,9 @@ def do_AMBER_preparation(args):
         prepare_sys_for_amber(args.ligand, args.receptor, chunk_file, args.interaction, args.HMR,
         small_molecule_forcefield=args.small_molecule_forcefield, water_ff_str = args.water_model,
         forcefield_str=f'{args.protein_forcefield}.xml', ionic_strength = args.ionic_strength,
-        box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain, seed=args.seed,
-        fix_ligand_file=args.fix_ligand, clean_up=not args.keep_all_files, water_steering= args.water_steering,
+        box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain,
+        custom_forcefield=args.custom_forcefield, seed=args.seed, fix_ligand_file=args.fix_ligand,
+        clean_up=not args.keep_all_files, water_steering= args.water_steering,
         waters_to_restrain = args.waters_to_restrain, lig_HB_elements=args.ligand_hb_elements)
 
         queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, hmr=args.HMR, keep_intermediate_files=args.keep_all_files)
@@ -755,7 +765,7 @@ def do_OpenMM_preparation(args):
     else: chunked_file = args.receptor
     # prepare system
     prepare_system(args.ligand, chunked_file, forcefield_str=f'{args.protein_forcefield}.xml', water_ff_str = f'{args.water_model}',
-            small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain,
+            small_molecule_ff=args.small_molecule_forcefield, waters_to_retain=args.waters_to_retain, custom_forcefield=args.custom_forcefield,
             box_buffer_distance = args.solvent_buffer_distance, ionicStrength = args.ionic_strength, fix_ligand_file=args.fix_ligand, clean_up=not args.keep_all_files)
     results = find_interaction(args.interaction, args.receptor)
     with open('complex_system.pickle', 'rb') as f:
