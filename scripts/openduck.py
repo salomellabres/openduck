@@ -42,6 +42,7 @@ def args_sanitation(parser, modes):
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
                 if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
+                if 'do_mmpbsa' in input_arguments: args.do_mmpbsa = bool(input_arguments['do_mmpbsa'])
             else:
                 modes.choices['openmm-full-protocol'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -67,6 +68,7 @@ def args_sanitation(parser, modes):
                 if 'init_distance' in input_arguments: args.init_distance =  float(input_arguments['init_distance'])
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
                 if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
+                if 'do_mmpbsa' in input_arguments: args.do_mmpbsa = bool(input_arguments['do_mmpbsa'])
             else:
                 modes.choices['openmm-from-equilibrated'].error('You need to specify at least "pickle" and "equilibrated_system" in the yaml file.')
         elif (args.pickle is None or args.equilibrated_system is None):
@@ -100,6 +102,7 @@ def args_sanitation(parser, modes):
                 if 'gpu_id' in input_arguments: args.gpu_id =  str(input_arguments['gpu_id'])
                 if 'force_constant_eq' in input_arguments: args.force_constant_eq =  float(input_arguments['force_constant_eq'])
                 if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
+                if 'do_mmpbsa' in input_arguments: args.do_mmpbsa = bool(input_arguments['do_mmpbsa'])
             else:
                 modes.choices['openmm-prepare'].error('You need to specify at least "ligand_mol", "receptor_pdb" and "interaction" in the yaml file.')
         elif (args.ligand is None or args.interaction is None or args.receptor is None):
@@ -127,6 +130,7 @@ def args_sanitation(parser, modes):
                 if 'gpu_id' in input_arguments: args.gpu_id =  int(input_arguments['gpu_id'])
                 if 'wqb_threshold' in input_arguments: args.wqb_threshold = float(input_arguments['wqb_threshold'])
                 if 'keep_all_files' in input_arguments: args.keep_all_files = bool(input_arguments['keep_all_files'])
+                if 'do_mmpbsa' in input_arguments: args.do_mmpbsa = bool(input_arguments['do_mmpbsa'])
             else:
                 modes.choices['openmm-from-amber'].error('You need to specify at least the AMBER topology and coordinates, a receptor and the interaction and a receptor file.')
         elif (args.interaction is None or args.topology is None or args.coordinates is None):
@@ -171,6 +175,7 @@ def args_sanitation(parser, modes):
                 if 'water_steering' in input_arguments : args.water_steering = bool(input_arguments['water_steering'])
                 if 'waters_to_restrain' in input_arguments : args.waters_to_restrain = int(input_arguments['waters_to_restrain'])
                 if 'ligand_hb_elements' in input_arguments : args.ligand_hb_elements = [int(x) for x in str(input_arguments['ligand_hb_elements']).split(',')]
+                if 'do_mmpbsa' in input_arguments: args.do_mmpbsa = bool(input_arguments['do_mmpbsa'])
                 
                 if args.queue_template == 'local' and args.batch: args.queue_template = None # no local array script
                 if (not args.ligand.endswith('.sdf') and not args.ligand.endswith('.sd')) and args.batch:
@@ -348,6 +353,9 @@ def parse_input():
     amber_prep.add_argument('--waters-to-restrain', default=None, type=int, help='Number (and order) of waters to restraint. Default is None when executing in the normal mode and 1 when using water-steering.')
     amber_prep.add_argument('-e', '--ligand-hb-elements', default=[7,8], type=int, nargs='+', help='Control which elements are accepted in the ligand to define the steering interaction. Specify using the atomic number separated with a space. Default is 7 and 8 (nitrogen and oxygen)')
 
+    amber_prep.add_argument('-mm', '--do_mmpbsa', default=False, type='store_true', help='Enable the MMPBSA calculation after DUCK calculations.)')
+
+
     #Arguments for report
     report = modes.add_parser('report', help='Generate a report for OpenDUck results.', description='Generate a table report for dynamic undocking output. For a multi-ligand report, use the pattern flag with wildcards to the directories.')
     report.set_defaults(mode='Report')
@@ -360,6 +368,7 @@ def parse_input():
     report.add_argument('-i', '--iterations', default=20, type=int, help='Number of bootstrapping iterations for Jarzynski analysis.')
     report.add_argument('-t', '--step-threshold', default=2500, type=int, help='Step threshold to find the minima. Only needed with custom executions of DUck. Default = 2500 steps')
     report.add_argument('-f', '--format', type=str.lower, default='amber', choices=('amber', 'openmm'), help='Engine used to generate results. Default = amber')
+    report.add_argument('-mm', '--mmpbsa', default=False, action='store_true', help='Collect also the MMPBSA reuslts. Default = False')
 
     #Arguments for chunk
     chunk = modes.add_parser('chunk', help='Chunk a protein for dynamic undocking.', description='Reduce the receptor protein to a pocket by chunking it around the specified interaction. The amino acids within a certain cutoff are considered part of the chunk and the protein segments are capped.')
@@ -697,7 +706,8 @@ def do_AMBER_preparation(args):
         pool.join()
 
         queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles,
-                                array_limit=len(r), hmr=args.HMR, keep_intermediate_files=args.keep_all_files)
+                                array_limit=len(r), hmr=args.HMR, keep_intermediate_files=args.keep_all_files,
+                                mmpbsa=args.do_mmpbsa)
     else:
         if args.threads != 1:
             print('WARNING: The number of threads does not have an impact if the batch mode is not enabled.')
@@ -707,9 +717,9 @@ def do_AMBER_preparation(args):
         box_buffer_distance = args.solvent_buffer_distance, waters_to_retain=args.waters_to_retain,
         custom_forcefield=args.custom_forcefield, seed=args.seed, fix_ligand_file=args.fix_ligand,
         clean_up=not args.keep_all_files, water_steering= args.water_steering,
-        waters_to_restrain = args.waters_to_restrain, lig_HB_elements=args.ligand_hb_elements)
+        waters_to_restrain = args.waters_to_restrain, lig_HB_elements=args.ligand_hb_elements, mmpbsa=args.do_mmpbsa)
 
-        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, hmr=args.HMR, keep_intermediate_files=args.keep_all_files)
+        queue = Queue_templates(wqb_threshold=args.wqb_threshold, replicas=args.smd_cycles, hmr=args.HMR, keep_intermediate_files=args.keep_all_files, mmpbsa=args.do_mmpbsa)
     queue.write_queue_file(kind=args.queue_template)
 
 def do_report(args):

@@ -85,8 +85,9 @@ def flatten_wqb_dict(info_dict):
                 v[j+1].append('Nan')
     return {ks: vs for ks, vs in zip(k, v)}
 
-def build_report_df(info_dict, mode='min'):
+def build_report_df(info_dict, mode='min', mmpbsa=False):
     '''Generate a report DataFrame from the dictionary with the specified WQB or Jarzynski information depending on the mode'''
+    
     if mode == 'min':
         df = pd.DataFrame({'System': list(info_dict.keys()), 'WQB':[wqb[0] for wqb in info_dict.values()]})
     elif mode == 'single':
@@ -108,14 +109,42 @@ def build_report_df(info_dict, mode='min'):
                             'Average': [np.mean([x[1] for x in wqb[1]]) for wqb in info_dict.values()],
                             'SD': [np.std([x[1] for x in wqb[1]]) for wqb in info_dict.values()]})
         jarz_df = pd.DataFrame({'System': list(info_dict.keys()),
-                            'Jarzynski':[wqb[-3] for wqb in info_dict.values()],
-                            'Jarzynski_SD':[wqb[-2] for wqb in info_dict.values()],
-                            'Jarzynski_SEM':[wqb[-1] for wqb in info_dict.values()],}) 
+                            'Jarzynski':[wqb[3] for wqb in info_dict.values()],
+                            'Jarzynski_SD':[wqb[4] for wqb in info_dict.values()],
+                            'Jarzynski_SEM':[wqb[5] for wqb in info_dict.values()],}) 
         df = pd.merge(wqb_df, jarz_df, on='System')
         df = pd.merge(df, single_df, on='System')
+
+    if mmpbsa:
+        mm_df = pd.DataFrame({'System': list(info_dict.keys()),
+                            'MMPBSA_dG_ave':[wqb[-2] for wqb in info_dict.values()],
+                            'MMPBSA_dG_SD':[wqb[-1] for wqb in info_dict.values()],}) 
+        df = pd.merge(df, mm_df, on='System')
+
     else:
         raise ValueError(f'{mode} is not a valid report mode. Try with min, all or avg.')
     return df
+
+def read_mmpbsadat(pattern="mmgbsa_"):
+    '''
+    '''
+    
+    files = []
+    for f in os.listdir(os.getcwd()):
+        if f.startswith(pattern):
+            files.append(f)
+
+    dG_values = []
+    for f in files:
+        dG_data = np.loadtxt(os.path.join(f))
+        dG_values.append((f, dG_data))
+
+    if len(dG_values):
+        dG = np.mean([x[1] for x in dG_values])
+    else:
+        dG = 'Nan'
+
+    return pd.DataFrame(dG_values)
 
 #from maciej
 def get_Wqb_value(file_duck_dat, mode='amber'):
@@ -316,9 +345,7 @@ def get_expavg_FD_df(work_df, T=300, calculate_FD=True):
                 sqrtMSE_FD = MSE_FD**0.5
             except:
                 pass
-
-
-
+        
         # write out on the final_df
         final_df.loc[rc] = [expavg, sqrtMSE, MSE, Bj,v, av, ai, Wdis, average, variance, FD, sqrtMSE_FD]
     return final_df
@@ -492,6 +519,7 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output', default='stdout', help = 'Output file, default is printing report to stdout.')
     parser.add_argument('-of', '--output_format', default='tbl', type=str, help='Output format, [csv | sdf | tbl].')
     parser.add_argument('--plot', default=False, action='store_true', help='Plot work or energy values to file.')
+    parser.add_argument('--mm', '--mmpbsa', default=False, action='csv', help='Output MMPBSA dG energy values to file.')
 
     args = parser.parse_args()
 
@@ -510,13 +538,20 @@ if __name__=='__main__':
         if args.mode in ('min', 'single', 'avg', 'all'):
             wqb = get_Wqb_value_AMBER_all(plot=args.plot)
             wqb_info[folder].extend(wqb)
+        
         if args.mode == 'jarzynski' or args.mode == 'all':
             expavg, sd, sem_v = do_jarzynski_analysis()
             wqb_info[folder].extend([expavg, sd, sem_v])
+        
+        if args.mmpbsa:
+            dG_df = read_mmpbsadat()
+            ave_dG = dG_df[1].mean()
+            sd_dG = dG_df[1].std()
+            wqb_info[folder].extend([ave_dG, sd_dG])
 
         os.chdir(currdir)
 
-    df = build_report_df(wqb_info, mode=args.mode)
+    df = build_report_df(wqb_info, mode=args.mode, mmpbsa=args.mmpbsa)
     if args.output_format == 'csv':
         df.to_csv(args.output, index=False)
     elif args.output_format == 'tbl':
@@ -525,3 +560,5 @@ if __name__=='__main__':
         mols = get_mols_and_format(df, mode=args.mode)
         with Chem.SDWriter(args.output) as w:
             [w.write(mol) for mol in mols]
+    
+    

@@ -15,6 +15,8 @@ module load amber
 
 {functions}
 
+{mmpbsa}
+
 cd LIG_target_$SLURM_ARRAY_TASK_ID
 
 {commands}

@@ -2,6 +2,7 @@
 #### PARAMS ####
 replicas={replicas}
 min_wqb={wqb_threshold}
+mmpbsa=true
     
 #### Runing Duck ####
 # Minimization
@@ -18,6 +19,9 @@ pmemd.cuda -O -i 2_heating300.in -o 2_heating300.out -p {top} -c 2_heating250.rs
 pmemd.cuda -O -i 3_eq.in -o 3_eq.out -p {top} -c 2_heating300.rst -r 3_eq.rst -x 3_eq.nc -ref 2_heating300.rst -e 3_eq.ene
 
 #Launch DUck 0 and check wqb
+if $mmpbsa; then
+   prepare_mmpbsa_and_launch 0 
+fi
 prepare_duck_and_launch 0 0 300K
 check_WQB $min_wqb
 
@@ -31,6 +35,10 @@ for ((i=1;i<=$replicas;++i)); do
       pmemd.cuda -O -i md.in -o md1.out -p {top} -c 3_eq.rst -r md1.rst -x md1.nc -ref 3_eq.rst
    else
       pmemd.cuda -O -i md.in -o md${i}.out -p {top} -c md$((i-1)).rst -r md${i}.rst -x md${i}.nc -ref 3_eq.rst
+   fi
+
+   if $mmpbsa; then
+      prepare_mmpbsa_and_launch $i
    fi
 
    prepare_duck_and_launch $i $i 300K

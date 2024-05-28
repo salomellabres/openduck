@@ -1,0 +1,21 @@
+# Function to calculate MMPBSA energies of the protein-ligand complex
+# using the final snapshots of the MD runs.
+
+prepare_mmpbsa_and_launch(){
+   nustart=$1
+   # concatenate trajectories
+   cp 3_eq.rst md0.rst
+   echo -e "trajin md${nustart}.rst\nstrip :WAT,Cl-,Na+,K+\ntrajout traj.mdcrd\nrun\nquit" | cpptraj -p system_complex.prmtop
+   echo -e "changeRadii mbondi3\nparmout mmpbsa.prmtop\ngo" | parmed -p system_complex.prmtop
+   # prepare topologies
+   ante-MMPBSA.py -p mmpbsa.prmtop -n :UNL -l ligand.prmtop -r receptor.prmtop -c complex2.prmtop -s :WAT,Cl-,Na+,K+
+   # run mmpbsa
+   MMPBSA.py -O -i ../mmgbsa.in -o FINAL_RESULTS_MMGBSA.dat -cp complex2.prmtop -rp receptor.prmtop -lp ligand.prmtop -y traj.mdcrd
+   # get results
+   grep "DELTA TOTAL" FINAL_RESULTS_MMGBSA.dat | awk '{print $3}' > mmgbsa_${nustart}.dat
+   cat mmgbsa_*.dat | awk '{ sum += $1; n++ } END { if (n > 0) print sum / n; }' > mmgbsa.log
+   # clean
+   rm ligand.prmtop receptor.prmtop complex2.prmtop FINAL_RESULTS_MMGBSA.dat traj.mdcrd
+}
+
+mmpbsa = True

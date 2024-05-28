@@ -15,6 +15,8 @@ module load amber
 
 {functions}
 
+{mmpbsa}
+
 {commands}
 
 exit

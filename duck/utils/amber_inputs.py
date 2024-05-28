@@ -48,7 +48,7 @@ Methods:
     copy_getWqbValues_script(): Copies the getWqbValues.py script from the queue templates directory to the current working directory.
     write_queue_file(kind): Generates a queue file with the given kind (template) and writes it to disk.
     """
-    def __init__(self, wqb_threshold=0, replicas=20, hmr=True, array_limit=False, keep_intermediate_files=False):
+    def __init__(self, wqb_threshold=0, replicas=20, hmr=True, array_limit=False, keep_intermediate_files=False, mmpbsa=False):
         '''
         Initialize the Queue_templates class.
 
@@ -57,6 +57,8 @@ Methods:
             replicas (int): The number of replicas to be used in simulations.
             hmr (bool): A boolean indicating if simulations are using HMR (Hydrogen Mass Repartitioning).
             array_limit (bool): A boolean indicating if the queue file should be generated with an array template.
+            keep_intermediate_files (bool): A boolean indicating if intermediate files should be kept.
+            mmpbsa (bool): A boolean indicating if MMPBSA calculation should be performed after DUCK calculations.
         '''        
         self.wqb_threshold = wqb_threshold
         self.replicas = replicas
@@ -67,7 +69,9 @@ Methods:
         else: self.top = 'system_complex.prmtop'
         
         self.queue_dir = self._get_queue_templates_dir()
-        self.commands_string = self._get_commands_string()
+        self.commands_string = self._get_commands_string("commands")
+        if mmpbsa:
+            self.mmpbsa_string   = self._get_commands_string("mmpbsa")
         if not keep_intermediate_files:
             self.commands_string += '\nfind -type f ! -regex ".*\(dat\|prmtop\|inpcrd\|in\|dist.*rst\|yaml\)$" -delete\n'
         self.functions_string = self._get_functions_string()
@@ -89,11 +93,11 @@ Methods:
             file_string = f.read()
         return file_string
     
-    def _get_commands_string(self):
+    def _get_commands_string(self, flag):
         '''
         Private method to read command template files
         '''
-        cmd_template = self._read_template('commands.txt')
+        cmd_template = self._read_template(flag+'.txt')
         return cmd_template.format(replicas=self.replicas, wqb_threshold = self.wqb_threshold, top = self.top, i='{i}')
     
     def _get_functions_string(self):
@@ -109,6 +113,7 @@ Methods:
         '''
         with open(file, 'w') as fh:
             fh.write(string)
+    
     def copy_getWqbValues_script(self):
         '''
         Utils method to copy the Wqb Analysis script to desired location.
@@ -126,10 +131,13 @@ Methods:
             raise ValueError(f'{kind} is not a stored queue template or does not have an array template.')
         if self.array_limit:
             que_templ = self._read_template(os.path.join(self.queue_dir, f'{kind}_array.q'))
-            self.write_string_to_file('duck_array_queue.q', que_templ.format(array_limit = self.array_limit, functions=self.functions_string, commands=self.commands_string))
+            self.write_string_to_file('duck_array_queue.q', que_templ.format(array_limit = self.array_limit, 
+                                                                             functions=self.functions_string, 
+                                                                             commands=self.commands_string, mmpbsa=self.mmpbsa_string))
         else:
             que_templ = self._read_template(os.path.join(self.queue_dir, f'{kind}.q'))
-            self.write_string_to_file('duck_queue.q', que_templ.format(functions=self.functions_string, commands=self.commands_string))
+            self.write_string_to_file('duck_queue.q', que_templ.format(functions=self.functions_string, 
+                                                                       commands=self.commands_string, mmpbsa=self.mmpbsa_string))
         self.copy_getWqbValues_script()
         
 class Amber_templates(object):

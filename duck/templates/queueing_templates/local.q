@@ -2,6 +2,8 @@
 
 {functions}
 
+{mmpbsa}
+
 {commands}
 
 exit

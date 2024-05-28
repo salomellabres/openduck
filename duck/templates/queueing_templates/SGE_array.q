@@ -38,6 +38,8 @@ echo "TMPDIR is $TMPDIR"
 
 {functions}
 
+{mmpbsa}
+
 {commands}
 
 #### Coping the files back to local ####
